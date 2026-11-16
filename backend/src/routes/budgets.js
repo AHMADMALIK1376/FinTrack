@@ -19,6 +19,16 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const { category_id, limit_amount, month } = req.body; // month as "2026-11"
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month || '')) {
+      return res.status(400).json({ error: 'Choose a month for this budget.' });
+    }
+    // SEC-01, BUD-01: only the user's own expense categories can have a budget
+    const { rows: cats } = await db.query(
+      'SELECT type FROM categories WHERE category_id = $1 AND user_id = $2', [category_id, req.user.id]);
+    if (!cats[0]) return res.status(404).json({ error: 'Category not found.' });
+    if (cats[0].type !== 'expense') {
+      return res.status(400).json({ error: 'Budgets can only be set for expense categories.' });
+    }
     const { rows } = await db.query(
       `INSERT INTO budgets (user_id, category_id, limit_amount, month)
        VALUES ($1, $2, $3, $4::date)
