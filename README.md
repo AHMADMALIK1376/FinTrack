@@ -89,11 +89,14 @@ FinTrack/
 │   ├── 01_schema.sql          tables, keys, constraints, indexes
 │   ├── 02_triggers.sql        balance trigger + ownership check
 │   ├── 03_views_functions.sql views, check_budget(), transfer_money()
-│   └── 04_seed.sql            sample data
+│   ├── 04_seed.sql            sample data
+│   └── tests/                 database tests (run in pgAdmin or with npm test)
 ├── backend/               Express REST API
 │   ├── .env.example           copy to .env and fill in
+│   ├── tests/                 API tests (npm test)
 │   └── src/
-│       ├── server.js          app entry point (also serves the website)
+│       ├── server.js          starts the app
+│       ├── app.js             routes, website files and error handling
 │       ├── db.js              PostgreSQL connection pool
 │       ├── middleware/auth.js JWT login check
 │       └── routes/            auth, accounts, categories, transactions, budgets, goals, reports
@@ -141,6 +144,20 @@ npm start
 Open **http://localhost:3000** in your browser.
 
 **Demo login** (from the sample data): `demo@fintrack.pk` / `demo1234`
+
+## Running the tests
+
+```bash
+cd backend
+npm test
+```
+
+This rebuilds a separate database called `fintrack_test` from the scripts in `database/` (your real `fintrack` database is never touched), then runs:
+
+- **Database tests** (`database/tests/*.sql`): constraints, triggers, views, `check_budget()` and `transfer_money()`. You can also open any of these files in pgAdmin's Query Tool and run them; each passing check prints `PASS <rule>` and nothing is changed.
+- **API tests** (`backend/tests/api.test.js`): every route, including privacy checks where a second user tries to read or change the first user's data.
+
+The same tests run automatically on GitHub for every pull request (see the **Actions** tab).
 
 ## API reference
 
