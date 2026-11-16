@@ -39,7 +39,7 @@ before(async () => {
 });
 
 after(async () => {
-  server.close();
+  if (server) server.close();
   await db.pool.end();
 });
 

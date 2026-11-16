@@ -5,6 +5,9 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env'), quiet: true });
 const { Client } = require('pg');
+const { checkDatabaseSettings } = require('../src/check-env');
+
+checkDatabaseSettings();
 
 process.env.PGDATABASE = process.env.TEST_PGDATABASE || 'fintrack_test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-only-secret';

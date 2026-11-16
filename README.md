@@ -145,6 +145,8 @@ Open **http://localhost:3000** in your browser.
 
 **Demo login** (from the sample data): `demo@fintrack.pk` / `demo1234`
 
+**If it says "Database password not set":** the server or tests could not read `backend/.env`. On Windows, Notepad often saves it as `.env.txt`; rename it with `Rename-Item .env.txt .env`, and make sure it has a `PGPASSWORD=` line. If PostgreSQL is installed in a different folder or port, set `PGPORT` to match (check with `Get-Service *postgres*` and the `port =` line in `postgresql.conf`).
+
 ## Running the tests
 
 ```bash
