@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>FinTrack · Dashboard</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="assets/icon.svg">
+<link href="vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="navbar"></div>
+<main class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div><h2 class="mb-0">Dashboard</h2><p class="text-muted-ft mb-0" id="hello"></p></div>
+    <input type="month" id="month" class="form-control" style="max-width:200px">
+  </div>
+  <div id="warnings"></div>
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="ft-stat bg-sky"><div class="label">Total balance</div><div class="value" id="sBalance">–</div></div></div>
+    <div class="col-6 col-lg-3"><div class="ft-stat bg-mint"><div class="label">Income this month</div><div class="value" id="sIncome">–</div></div></div>
+    <div class="col-6 col-lg-3"><div class="ft-stat bg-peach"><div class="label">Expense this month</div><div class="value" id="sExpense">–</div></div></div>
+    <div class="col-6 col-lg-3"><div class="ft-stat bg-lav"><div class="label">Saved this month</div><div class="value" id="sSaving">–</div></div></div>
+  </div>
+  <div class="row g-3 mb-4">
+    <div class="col-lg-7"><div class="ft-card p-4 h-100"><h5>Income vs. expense (last 6 months)</h5><canvas id="trendChart" height="220"></canvas></div></div>
+    <div class="col-lg-5"><div class="ft-card p-4 h-100"><h5>Spending by category</h5><canvas id="catChart" height="220"></canvas><p id="catEmpty" class="empty d-none">No expenses this month yet.</p></div></div>
+  </div>
+  <div class="ft-card p-4">
+    <div class="d-flex justify-content-between align-items-center mb-2"><h5 class="mb-0">Recent transactions</h5><a href="transactions.html" class="btn btn-sm btn-outline-primary">View all</a></div>
+    <div class="table-responsive"><table class="table align-middle mb-0"><tbody id="recent"></tbody></table></div>
+  </div>
+</main>
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="vendor/chartjs/chart.umd.min.js"></script>
+<script>
+  auth.requireLogin();
+  renderNavbar('dashboard.html');
+  document.getElementById('hello').textContent = 'Welcome back, ' + (auth.user?.full_name || '');
+  const monthInput = document.getElementById('month');
+  monthInput.value = thisMonth();
+  let trendChart, catChart;
+  const palette = ['#2F6FD6', '#3CCB8E', '#F2A65A', '#7A6BC9', '#E5707E', '#5BC0DE', '#1C2B44', '#B9D2F0'];
+
+  async function load() {
+    const m = monthInput.value;
+    const [d, recent] = await Promise.all([api('/reports/dashboard?month=' + m), api('/transactions?month=' + m)]);
+    sBalance.textContent = money(d.total_balance);
+    sIncome.textContent = money(d.total_income);
+    sExpense.textContent = money(d.total_expense);
+    sSaving.textContent = money(d.net_saving);
+
+    warnings.innerHTML = d.budget_warnings.map((w) => `<div class="alert alert-warning d-flex align-items-center gap-2">
+      <i class="bi bi-exclamation-triangle-fill"></i><div><b>${esc(w.category)}</b> is over budget by <b>${money(w.over_by)}</b>
+      (spent ${money(w.spent)} of ${money(w.limit_amount)}).</div></div>`).join('');
+
+    trendChart?.destroy();
+    trendChart = new Chart(document.getElementById('trendChart'), {
+      type: 'bar',
+      data: { labels: d.trend.map((t) => t.label), datasets: [
+        { label: 'Income', data: d.trend.map((t) => t.total_income), backgroundColor: '#3CCB8E', borderRadius: 8 },
+        { label: 'Expense', data: d.trend.map((t) => t.total_expense), backgroundColor: '#F2A65A', borderRadius: 8 }] },
+      options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } },
+    });
+
+    catChart?.destroy();
+    catEmpty.classList.toggle('d-none', d.by_category.length > 0);
+    catChart = new Chart(document.getElementById('catChart'), {
+      type: 'doughnut',
+      data: { labels: d.by_category.map((c) => c.category), datasets: [{ data: d.by_category.map((c) => c.total_spent), backgroundColor: palette }] },
+      options: { cutout: '62%', plugins: { legend: { position: 'bottom' } } },
+    });
+
+    document.getElementById('recent').innerHTML = recent.slice(0, 6).map((t) => `<tr>
+      <td>${esc(t.txn_date.slice(0, 10))}</td><td>${esc(t.description || '')}</td>
+      <td><span class="badge text-bg-light">${esc(t.category)}</span></td><td class="text-muted-ft">${esc(t.account_name)}</td>
+      <td class="text-end amount-${t.type}">${t.type === 'income' ? '+' : '−'}${money(t.amount)}</td></tr>`).join('')
+      || '<tr><td class="empty">No transactions this month.</td></tr>';
+  }
+  monthInput.addEventListener('change', load);
+  load().catch((e) => toast(e.message, 'danger'));
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>FinTrack · Log in</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="assets/icon.svg">
+<link href="vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-side">
+    <img src="assets/logo.png" alt="FinTrack logo" class="mb-4">
+    <h1 class="display-6 mb-3">Know where every rupee goes.</h1>
+    <p class="lead text-muted-ft">Record income and expenses, set monthly budgets and reach your savings goals, all in one place.</p>
+  </div>
+  <div class="auth-form">
+    <div class="ft-card p-4 p-md-5">
+      <ul class="nav nav-pills nav-fill mb-4" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#loginTab">Log in</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#registerTab">Register</button></li>
+      </ul>
+      <div class="tab-content">
+        <form id="loginTab" class="tab-pane fade show active">
+          <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required></div>
+          <div class="mb-4"><label class="form-label">Password</label><input type="password" name="password" class="form-control" required></div>
+          <button class="btn btn-primary w-100 py-2">Log in</button>
+          <p class="small text-muted-ft mt-3 mb-0">Demo: demo@fintrack.pk / demo1234</p>
+        </form>
+        <form id="registerTab" class="tab-pane fade">
+          <div class="mb-3"><label class="form-label">Full name</label><input name="full_name" class="form-control" required></div>
+          <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required></div>
+          <div class="mb-4"><label class="form-label">Password</label><input type="password" name="password" minlength="6" class="form-control" required></div>
+          <button class="btn btn-primary w-100 py-2">Create account</button>
+        </form>
+      </div>
+      <div id="authError" class="alert alert-danger mt-3 d-none"></div>
+    </div>
+  </div>
+</div>
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script>
+  if (auth.token) location.href = 'dashboard.html';
+  const errBox = document.getElementById('authError');
+  async function submit(form, path) {
+    errBox.classList.add('d-none');
+    try {
+      const data = await api(path, { method: 'POST', body: Object.fromEntries(new FormData(form)) });
+      auth.save(data);
+      location.href = 'dashboard.html';
+    } catch (e) { errBox.textContent = e.message; errBox.classList.remove('d-none'); }
+  }
+  document.getElementById('loginTab').addEventListener('submit', (e) => { e.preventDefault(); submit(e.target, '/auth/login'); });
+  document.getElementById('registerTab').addEventListener('submit', (e) => { e.preventDefault(); submit(e.target, '/auth/register'); });
+</script>
+</body>
+</html>

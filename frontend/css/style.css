@@ -1,0 +1,47 @@
+/* FinTrack theme: light, soft colours that match the logo */
+:root {
+  --ft-navy: #1C2B44;
+  --ft-blue: #2F6FD6;
+  --ft-green: #3CCB8E;
+  --ft-sky: #E6F0FB;
+  --ft-mint: #E2F4EB;
+  --ft-peach: #FDEEE2;
+  --ft-paper: #F7FAFD;
+  --ft-muted: #4A5A72;
+  --bs-primary: #2F6FD6;
+  --bs-primary-rgb: 47, 111, 214;
+  --bs-body-font-family: 'Inter', system-ui, sans-serif;
+}
+body { background: var(--ft-paper); color: var(--ft-navy); }
+h1, h2, h3, h4, h5, .navbar-brand { font-family: 'Space Grotesk', 'Inter', sans-serif; font-weight: 700; }
+.btn-primary { --bs-btn-bg: var(--ft-blue); --bs-btn-border-color: var(--ft-blue); --bs-btn-hover-bg: #2559b0; --bs-btn-hover-border-color: #2559b0; }
+.text-muted-ft { color: var(--ft-muted); }
+
+/* navbar */
+.ft-nav { background: #fff; box-shadow: 0 2px 12px rgba(28, 43, 68, .06); }
+.ft-nav .nav-link { color: var(--ft-muted); font-weight: 500; border-radius: 10px; padding: .45rem .9rem !important; }
+.ft-nav .nav-link.active, .ft-nav .nav-link:hover { color: var(--ft-blue); background: var(--ft-sky); }
+
+/* cards */
+.ft-card { background: #fff; border: 0; border-radius: 18px; box-shadow: 0 4px 16px rgba(28, 43, 68, .06); }
+.ft-stat { border-radius: 18px; padding: 1.25rem 1.4rem; }
+.ft-stat .label { font-size: .85rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ft-muted); }
+.ft-stat .value { font-family: 'Space Grotesk', sans-serif; font-size: 1.9rem; font-weight: 700; }
+.bg-sky { background: var(--ft-sky); }
+.bg-mint { background: var(--ft-mint); }
+.bg-peach { background: var(--ft-peach); }
+.bg-lav { background: #EEEBFA; }
+.amount-income { color: #1F7A5C; font-weight: 600; }
+.amount-expense { color: #B4472C; font-weight: 600; }
+
+/* auth page */
+.auth-wrap { min-height: 100vh; display: grid; grid-template-columns: 1.1fr 1fr; }
+.auth-side { background: var(--ft-sky); display: flex; flex-direction: column; justify-content: center; padding: 4rem; }
+.auth-side img { max-width: 420px; }
+.auth-form { display: flex; align-items: center; justify-content: center; padding: 2rem; }
+.auth-form .ft-card { width: 100%; max-width: 420px; }
+@media (max-width: 900px) { .auth-wrap { grid-template-columns: 1fr; } .auth-side { padding: 2rem; } }
+
+.progress { height: .7rem; border-radius: 99px; background: #E3EAF4; }
+.table > :not(caption) > * > * { padding: .8rem .75rem; }
+.empty { color: var(--ft-muted); text-align: center; padding: 2rem 0; }

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>FinTrack · Transactions</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="assets/icon.svg">
+<link href="vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="navbar"></div>
+<main class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <h2 class="mb-0">Transactions</h2>
+    <button class="btn btn-primary" onclick="openForm()"><i class="bi bi-plus-lg me-1"></i>Add transaction</button>
+  </div>
+  <div class="ft-card p-3 mb-3">
+    <div class="row g-2">
+      <div class="col-md-3"><input type="month" id="fMonth" class="form-control"></div>
+      <div class="col-md-2"><select id="fType" class="form-select"><option value="">All types</option><option value="income">Income</option><option value="expense">Expense</option></select></div>
+      <div class="col-md-3"><select id="fCategory" class="form-select"><option value="">All categories</option></select></div>
+      <div class="col-md-4"><input id="fSearch" class="form-control" placeholder="Search description…"></div>
+    </div>
+  </div>
+  <div class="ft-card p-3">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Account</th><th class="text-end">Amount</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<div class="modal fade" id="txnModal" tabindex="-1">
+  <div class="modal-dialog"><form class="modal-content" id="txnForm">
+    <div class="modal-header"><h5 class="modal-title" id="formTitle">Add transaction</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <input type="hidden" name="txn_id">
+      <div class="btn-group w-100 mb-3" role="group">
+        <input type="radio" class="btn-check" name="kind" id="kExp" value="expense" checked><label class="btn btn-outline-danger" for="kExp">Expense</label>
+        <input type="radio" class="btn-check" name="kind" id="kInc" value="income"><label class="btn btn-outline-success" for="kInc">Income</label>
+      </div>
+      <div class="mb-3"><label class="form-label">Amount (Rs)</label><input type="number" name="amount" min="1" step="0.01" class="form-control" required></div>
+      <div class="row g-2 mb-3">
+        <div class="col"><label class="form-label">Category</label><select name="category_id" class="form-select" required></select></div>
+        <div class="col"><label class="form-label">Account</label><select name="account_id" class="form-select" required></select></div>
+      </div>
+      <div class="mb-3"><label class="form-label">Date</label><input type="date" name="txn_date" class="form-control" required></div>
+      <div class="mb-1"><label class="form-label">Description</label><input name="description" class="form-control" maxlength="255"></div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save</button></div>
+  </form></div>
+</div>
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script>
+  auth.requireLogin();
+  renderNavbar('transactions.html');
+  let categories = [], accounts = [], list = [];
+  const modal = new bootstrap.Modal(txnModal);
+  const form = document.getElementById('txnForm');
+  fMonth.value = thisMonth();
+
+  function fillCategories(kind, selected) {
+    form.category_id.innerHTML = categories.filter((c) => c.type === kind)
+      .map((c) => `<option value="${c.category_id}" ${c.category_id == selected ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+  }
+  form.querySelectorAll('[name=kind]').forEach((r) => r.addEventListener('change', () => fillCategories(r.value)));
+
+  function openForm(t) {
+    form.reset();
+    formTitle.textContent = t ? 'Edit transaction' : 'Add transaction';
+    form.elements.txn_id.value = t?.transaction_id || '';
+    const kind = t?.type || 'expense';
+    form.querySelector(`[name=kind][value=${kind}]`).checked = true;
+    fillCategories(kind, t?.category_id);
+    form.account_id.innerHTML = accounts.map((a) => `<option value="${a.account_id}" ${a.account_id == t?.account_id ? 'selected' : ''}>${esc(a.account_name)}</option>`).join('');
+    form.amount.value = t?.amount || '';
+    form.txn_date.value = (t?.txn_date || new Date().toISOString()).slice(0, 10);
+    form.description.value = t?.description || '';
+    modal.show();
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const body = Object.fromEntries(new FormData(form));
+    try {
+      if (body.txn_id) await api("/transactions/" + body.txn_id, { method: 'PUT', body });
+      else await api('/transactions', { method: 'POST', body });
+      modal.hide(); toast('Transaction saved'); load();
+    } catch (err) { toast(err.message, 'danger'); }
+  });
+
+  async function remove(id) {
+    if (!confirm('Delete this transaction?')) return;
+    try { await api('/transactions/' + id, { method: 'DELETE' }); toast('Transaction deleted'); load(); }
+    catch (err) { toast(err.message, 'danger'); }
+  }
+
+  async function load() {
+    const q = new URLSearchParams({ month: fMonth.value, type: fType.value, category_id: fCategory.value, search: fSearch.value });
+    [...q.keys()].forEach((k) => !q.get(k) && q.delete(k));
+    list = await api('/transactions?' + q);
+    rows.innerHTML = list.map((t, i) => `<tr>
+      <td>${esc(t.txn_date.slice(0, 10))}</td><td>${esc(t.description || '')}</td>
+      <td><span class="badge text-bg-light">${esc(t.category)}</span></td><td class="text-muted-ft">${esc(t.account_name)}</td>
+      <td class="text-end amount-${t.type}">${t.type === 'income' ? '+' : '−'}${money(t.amount)}</td>
+      <td class="text-end text-nowrap"><button class="btn btn-sm btn-light" onclick="openForm(list[${i}])"><i class="bi bi-pencil"></i></button>
+      <button class="btn btn-sm btn-light text-danger" onclick="remove(${t.transaction_id})"><i class="bi bi-trash"></i></button></td></tr>`).join('')
+      || '<tr><td colspan="6" class="empty">No transactions found.</td></tr>';
+  }
+
+  (async () => {
+    [categories, accounts] = await Promise.all([api('/categories'), api('/accounts')]);
+    fCategory.innerHTML += categories.map((c) => `<option value="${c.category_id}">${esc(c.name)} (${c.type})</option>`).join('');
+    [fMonth, fType, fCategory].forEach((el) => el.addEventListener('change', load));
+    fSearch.addEventListener('input', () => { clearTimeout(window._t); window._t = setTimeout(load, 300); });
+    load();
+  })().catch((e) => toast(e.message, 'danger'));
+</script>
+</body>
+</html>

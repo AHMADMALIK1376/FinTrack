@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>FinTrack · Budgets &amp; Goals</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="assets/icon.svg">
+<link href="vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link href="vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<div id="navbar"></div>
+<main class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <h2 class="mb-0">Budgets &amp; Goals</h2>
+    <input type="month" id="month" class="form-control" style="max-width:200px">
+  </div>
+  <div class="row g-3">
+    <div class="col-lg-7"><div class="ft-card p-4 h-100">
+      <h5>Monthly budgets</h5>
+      <form id="budgetForm" class="row g-2 mb-4">
+        <div class="col-sm-6"><select name="category_id" class="form-select" required></select></div>
+        <div class="col-sm-4"><input type="number" name="limit_amount" min="1" class="form-control" placeholder="Limit (Rs)" required></div>
+        <div class="col-sm-2"><button class="btn btn-primary w-100">Set</button></div>
+      </form>
+      <div id="budgetList"></div>
+    </div></div>
+    <div class="col-lg-5"><div class="ft-card p-4 h-100">
+      <h5>Savings goals</h5>
+      <form id="goalForm" class="row g-2 mb-4">
+        <div class="col-12"><input name="goal_name" class="form-control" placeholder="Goal, e.g. New laptop" required></div>
+        <div class="col-6"><input type="number" name="target_amount" min="1" class="form-control" placeholder="Target (Rs)" required></div>
+        <div class="col-6"><input type="date" name="deadline" class="form-control"></div>
+        <div class="col-12"><button class="btn btn-primary w-100">Add goal</button></div>
+      </form>
+      <div id="goalList"></div>
+    </div></div>
+  </div>
+</main>
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script>
+  auth.requireLogin();
+  renderNavbar('budgets.html');
+  month.value = thisMonth();
+
+  async function load() {
+    const [budgets, goals, categories] = await Promise.all([api('/budgets?month=' + month.value), api('/goals'), api('/categories')]);
+    budgetForm.category_id.innerHTML = categories.filter((c) => c.type === 'expense').map((c) => `<option value="${c.category_id}">${esc(c.name)}</option>`).join('');
+    budgetList.innerHTML = budgets.map((b) => {
+      const pct = Math.min(100, Math.round((b.spent / b.limit_amount) * 100));
+      const over = Number(b.spent) > Number(b.limit_amount);
+      return `<div class="mb-3"><div class="d-flex justify-content-between small mb-1">
+        <span class="fw-semibold">${esc(b.category)} ${over ? '<span class="badge text-bg-danger ms-1">Over budget</span>' : ''}</span>
+        <span>${money(b.spent)} / ${money(b.limit_amount)}
+        <a href="#" class="text-muted ms-2" onclick="removeBudget(${b.budget_id});return false"><i class="bi bi-x-lg"></i></a></span></div>
+        <div class="progress"><div class="progress-bar ${over ? 'bg-danger' : pct > 80 ? 'bg-warning' : 'bg-success'}" style="width:${pct}%"></div></div></div>`;
+    }).join('') || '<p class="empty">No budgets set for this month.</p>';
+    goalList.innerHTML = goals.map((g) => {
+      const pct = Math.round((g.saved_amount / g.target_amount) * 100);
+      return `<div class="p-3 rounded-4 bg-mint mb-3"><div class="d-flex justify-content-between">
+        <b>${esc(g.goal_name)}</b><a href="#" class="text-muted" onclick="removeGoal(${g.goal_id});return false"><i class="bi bi-x-lg"></i></a></div>
+        <div class="small text-muted-ft mb-2">${money(g.saved_amount)} of ${money(g.target_amount)}${g.deadline ? ' · by ' + esc(g.deadline.slice(0, 10)) : ''}</div>
+        <div class="progress mb-2"><div class="progress-bar bg-success" style="width:${pct}%"></div></div>
+        <div class="input-group input-group-sm"><input type="number" min="1" class="form-control" placeholder="Add savings (Rs)" id="add${g.goal_id}">
+        <button class="btn btn-outline-success" onclick="addToGoal(${g.goal_id})">Add</button></div></div>`;
+    }).join('') || '<p class="empty">No savings goals yet.</p>';
+  }
+
+  budgetForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try { await api('/budgets', { method: 'POST', body: { ...Object.fromEntries(new FormData(budgetForm)), month: month.value } }); toast('Budget saved'); load(); }
+    catch (err) { toast(err.message, 'danger'); }
+  });
+  goalForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try { await api('/goals', { method: 'POST', body: Object.fromEntries(new FormData(goalForm)) }); goalForm.reset(); toast('Goal added'); load(); }
+    catch (err) { toast(err.message, 'danger'); }
+  });
+  async function addToGoal(id) {
+    const amount = document.getElementById('add' + id).value;
+    if (!amount) return;
+    try { await api(`/goals/${id}/add`, { method: 'PATCH', body: { amount } }); toast('Savings added'); load(); }
+    catch (err) { toast(err.message, 'danger'); }
+  }
+  async function removeBudget(id) { await api('/budgets/' + id, { method: 'DELETE' }); load(); }
+  async function removeGoal(id) { if (confirm('Delete this goal?')) { await api('/goals/' + id, { method: 'DELETE' }); load(); } }
+  month.addEventListener('change', load);
+  load().catch((e) => toast(e.message, 'danger'));
+</script>
+</body>
+</html>
