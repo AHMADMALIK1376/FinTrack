@@ -1,0 +1,53 @@
+# Runs on every push and pull request to main and dev:
+# builds a fresh PostgreSQL database from database/*.sql, runs the database tests and the API tests.
+# A red build is never merged (planning rule: plan.md section 11.2).
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      TEST_PGDATABASE: fintrack_test
+      JWT_SECRET: ci-only-secret
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Database scripts and seed run cleanly on an empty database (DB-08)
+        run: |
+          createdb fintrack_seed_check
+          for f in ../database/0*.sql; do psql -v ON_ERROR_STOP=1 -q -d fintrack_seed_check -f "$f"; done
+      - name: Database and API tests
+        run: npm test
+      - name: Security audit of dependencies
+        run: npm audit --omit=dev --audit-level=high

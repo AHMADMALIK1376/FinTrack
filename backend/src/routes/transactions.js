@@ -24,17 +24,21 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// Makes sure the account belongs to the logged-in user
-async function ownsAccount(userId, accountId) {
-  const { rowCount } = await db.query(
-    'SELECT 1 FROM accounts WHERE account_id = $1 AND user_id = $2', [accountId, userId]);
-  return rowCount === 1;
+/** True when both the account and the category belong to the logged-in user (SEC-01). */
+async function ownsAccountAndCategory(userId, accountId, categoryId) {
+  const { rows } = await db.query(
+    `SELECT EXISTS (SELECT 1 FROM accounts   WHERE account_id  = $1 AND user_id = $3)
+        AND EXISTS (SELECT 1 FROM categories WHERE category_id = $2 AND user_id = $3) AS ok`,
+    [accountId, categoryId, userId]);
+  return rows[0].ok;
 }
 
 router.post('/', async (req, res, next) => {
   try {
     const { account_id, category_id, amount, txn_date, description } = req.body;
-    if (!(await ownsAccount(req.user.id, account_id))) return res.status(404).json({ error: 'Account not found.' });
+    if (!(await ownsAccountAndCategory(req.user.id, account_id, category_id))) {
+      return res.status(404).json({ error: 'Account or category not found.' });
+    }
     const { rows } = await db.query(
       `INSERT INTO transactions (account_id, category_id, amount, txn_date, description)
        VALUES ($1, $2, $3, COALESCE($4::date, CURRENT_DATE), $5) RETURNING *`,
@@ -46,7 +50,9 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const { account_id, category_id, amount, txn_date, description } = req.body;
-    if (!(await ownsAccount(req.user.id, account_id))) return res.status(404).json({ error: 'Account not found.' });
+    if (!(await ownsAccountAndCategory(req.user.id, account_id, category_id))) {
+      return res.status(404).json({ error: 'Account or category not found.' });
+    }
     const { rows } = await db.query(
       `UPDATE transactions t
        SET account_id = $1, category_id = $2, amount = $3, txn_date = $4, description = $5
