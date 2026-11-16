@@ -1,14 +1,15 @@
 -- DB-03, DB-04, AUTH-02, GOAL-02, BUD-01: bad data is refused by the database itself.
 BEGIN;
 
--- expect_error(sql, sqlstate): passes only if the statement fails with that error code
+-- expect_error(sql, sqlstates, rule): passes only if the statement fails with one of the error
+-- codes in sqlstates (comma-separated: some codes differ between PostgreSQL versions)
 CREATE FUNCTION pg_temp.expect_error(p_sql TEXT, p_state TEXT, p_rule TEXT) RETURNS VOID AS $fn$
 DECLARE failed BOOLEAN := FALSE;
 BEGIN
     BEGIN
         EXECUTE p_sql;
     EXCEPTION WHEN OTHERS THEN
-        IF SQLSTATE <> p_state THEN
+        IF NOT (SQLSTATE = ANY (string_to_array(p_state, ','))) THEN
             RAISE EXCEPTION '% expected error % but got % (%) for: %', p_rule, p_state, SQLSTATE, SQLERRM, p_sql;
         END IF;
         failed := TRUE;
@@ -63,7 +64,7 @@ BEGIN
 
     -- ON DELETE rules
     INSERT INTO transactions (account_id, category_id, amount) VALUES (acc, cat_food, 100);
-    PERFORM pg_temp.expect_error(format('DELETE FROM categories WHERE category_id = %s', cat_food), '23503', 'DB-02 category used by transactions cannot be deleted');
+    PERFORM pg_temp.expect_error(format('DELETE FROM categories WHERE category_id = %s', cat_food), '23503,23001', 'DB-02 category used by transactions cannot be deleted');
     DELETE FROM users WHERE user_id = u1;
     ASSERT NOT EXISTS (SELECT 1 FROM accounts WHERE user_id = u1), 'DB-02 deleting a user must delete their accounts';
     ASSERT NOT EXISTS (SELECT 1 FROM savings_goals WHERE user_id = u1), 'DB-02 deleting a user must delete their goals';

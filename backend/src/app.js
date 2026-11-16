@@ -31,6 +31,7 @@ app.use((err, req, res, next) => {
   const known = {
     '23505': 'This item already exists.',
     '23503': 'This item is linked to other records and cannot be changed.',
+    '23001': 'This item is linked to other records and cannot be changed.', // ON DELETE RESTRICT on PostgreSQL 18
     '23514': 'A value is not allowed (for example, amounts must be greater than zero).',
     '23502': 'Please fill in all required fields.',
     '22P02': 'A value has the wrong format.',

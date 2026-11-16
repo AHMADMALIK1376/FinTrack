@@ -109,6 +109,16 @@ describe('accounts, transactions and transfers', () => {
     assert.strictEqual((await call('DELETE', `/api/accounts/${add.body.account_id}`, { token: u.token })).status, 204);
   });
 
+  test('DB-02 a category that has transactions cannot be deleted, with a plain message', async () => {
+    const u = await newUser('Category Keeper');
+    await call('POST', '/api/transactions', { token: u.token, body: { account_id: u.cash, category_id: u.cat('Food'), amount: 50 } });
+    const r = await call('DELETE', `/api/categories/${u.cat('Food')}`, { token: u.token });
+    assert.strictEqual(r.status, 400);
+    assert.match(r.body.error, /linked to other records/);
+    const unused = await call('DELETE', `/api/categories/${u.cat('Health')}`, { token: u.token });
+    assert.strictEqual(unused.status, 204);
+  });
+
   test('TXN-01 add, edit and delete transactions; balances follow (DB-05)', async () => {
     const u = await newUser('Txn Owner');
     const balance = async () => Number((await call('GET', '/api/accounts', { token: u.token })).body[0].balance);

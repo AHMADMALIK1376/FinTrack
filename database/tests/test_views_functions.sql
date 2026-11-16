@@ -1,14 +1,15 @@
 -- RPT-01, BUD-03, ACC-04: the report views, check_budget() and the atomic transfer_money() procedure.
 BEGIN;
 
--- expect_error(sql, sqlstate): passes only if the statement fails with that error code
+-- expect_error(sql, sqlstates, rule): passes only if the statement fails with one of the error
+-- codes in sqlstates (comma-separated: some codes differ between PostgreSQL versions)
 CREATE FUNCTION pg_temp.expect_error(p_sql TEXT, p_state TEXT, p_rule TEXT) RETURNS VOID AS $fn$
 DECLARE failed BOOLEAN := FALSE;
 BEGIN
     BEGIN
         EXECUTE p_sql;
     EXCEPTION WHEN OTHERS THEN
-        IF SQLSTATE <> p_state THEN
+        IF NOT (SQLSTATE = ANY (string_to_array(p_state, ','))) THEN
             RAISE EXCEPTION '% expected error % but got % (%) for: %', p_rule, p_state, SQLSTATE, SQLERRM, p_sql;
         END IF;
         failed := TRUE;
