@@ -34,8 +34,10 @@ jobs:
     env:
       PGHOST: localhost
       PGPORT: 5432
-      PGUSER: postgres
-      PGPASSWORD: postgres
+      PGUSER: fintrack_app            # the API connects as the limited role (DB-10)
+      PGPASSWORD: fintrack_app_local
+      PGADMIN_USER: postgres          # tests rebuild the database as the admin
+      PGADMIN_PASSWORD: postgres
       TEST_PGDATABASE: fintrack_test
       JWT_SECRET: ci-only-secret
     defaults:
@@ -50,6 +52,9 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - name: Database scripts and seed run cleanly on an empty database (DB-08)
+        env:
+          PGUSER: postgres
+          PGPASSWORD: postgres
         run: |
           createdb fintrack_seed_check
           for f in ../database/0*.sql; do psql -v ON_ERROR_STOP=1 -q -d fintrack_seed_check -f "$f"; done

@@ -4,8 +4,15 @@
 const fs = require('fs');
 const path = require('path');
 
-/** Throws an Error with plain instructions when PGPASSWORD (or the .env file) is missing. */
-function checkDatabaseSettings() {
+/**
+ * Throws an Error with plain instructions when PGPASSWORD (or the .env file) is missing.
+ * @param {{admin?: boolean}} options admin: also require the admin account used by the tests
+ */
+function checkDatabaseSettings({ admin = false } = {}) {
+  if (admin && process.env.PGUSER === 'fintrack_app' && typeof process.env.PGADMIN_PASSWORD !== 'string') {
+    throw new Error('Admin password not set. The tests rebuild the test database as the postgres user: '
+      + 'add PGADMIN_USER=postgres and PGADMIN_PASSWORD=<your postgres password> to backend/.env.');
+  }
   if (typeof process.env.PGPASSWORD === 'string') return;
   const backendDir = path.join(__dirname, '..');
   const hasEnv = fs.existsSync(path.join(backendDir, '.env'));

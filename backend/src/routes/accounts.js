@@ -12,7 +12,7 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
   try {
     const { account_name, account_type } = req.body;
-    const { rows } = await db.query(
+    const { rows } = await db.asUser(req.user.id,
       `INSERT INTO accounts (user_id, account_name, account_type) VALUES ($1, $2, $3) RETURNING *`,
       [req.user.id, account_name, account_type]);
     res.status(201).json(rows[0]);
@@ -22,7 +22,7 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const { account_name, account_type } = req.body;
-    const { rows } = await db.query(
+    const { rows } = await db.asUser(req.user.id,
       `UPDATE accounts SET account_name = $1, account_type = $2
        WHERE account_id = $3 AND user_id = $4 RETURNING *`,
       [account_name, account_type, req.params.id, req.user.id]);
@@ -33,7 +33,7 @@ router.put('/:id', async (req, res, next) => {
 
 router.delete('/:id', async (req, res, next) => {
   try {
-    const { rowCount } = await db.query(
+    const { rowCount } = await db.asUser(req.user.id,
       'DELETE FROM accounts WHERE account_id = $1 AND user_id = $2', [req.params.id, req.user.id]);
     if (!rowCount) return res.status(404).json({ error: 'Account not found.' });
     res.status(204).end();
@@ -48,7 +48,7 @@ router.post('/transfer', async (req, res, next) => {
       'SELECT COUNT(*)::int AS n FROM accounts WHERE user_id = $1 AND account_id IN ($2, $3)',
       [req.user.id, from_account, to_account]);
     if (own.rows[0].n !== 2) return res.status(404).json({ error: 'Account not found.' });
-    await db.query('CALL transfer_money($1, $2, $3)', [from_account, to_account, amount]);
+    await db.asUser(req.user.id, 'CALL transfer_money($1, $2, $3)', [from_account, to_account, amount]);
     res.json({ ok: true });
   } catch (err) { next(err); }
 });

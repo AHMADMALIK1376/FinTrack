@@ -1,5 +1,5 @@
 // API tests: every route, plus privacy checks where a second user tries to reach the first user's data.
-// Rules: AUTH-01 – AUTH-04, SEC-01, SEC-02, ACC-01, ACC-04, TXN-01, TXN-02, BUD-01, BUD-03, GOAL-01, GOAL-02, RPT-01.
+// Rules: AUTH-01 – AUTH-04, SEC-01, SEC-02, DB-09, DB-10, ACC-01, ACC-04, TXN-01, TXN-02, BUD-01, BUD-03, GOAL-01, GOAL-02, RPT-01.
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 const { resetDatabase } = require('./setup');
@@ -308,3 +308,45 @@ describe('privacy: a user can never reach another user\'s data', () => {
     assert.strictEqual(Number(ownerBank.balance), 77777);
   });
 });
+
+describe('activity log and database role', () => {
+  test('DB-10 the API connects to the database as fintrack_app, never as an admin', async () => {
+    const { rows } = await db.query('SELECT current_user AS who, rolsuper FROM pg_roles WHERE rolname = current_user');
+    assert.strictEqual(rows[0].who, 'fintrack_app',
+      'set PGUSER=fintrack_app and PGPASSWORD=fintrack_app_local in backend/.env (and run database/06_roles.sql)');
+    assert.strictEqual(rows[0].rolsuper, false);
+  });
+
+  test('DB-09 activity shows the user\'s own changes as plain sentences, newest first', async () => {
+    const u = await newUser('Activity User');
+    const t = (await call('POST', '/api/transactions', { token: u.token, body: { account_id: u.cash, category_id: u.cat('Food'), amount: 8000, description: 'Groceries' } })).body;
+    await call('PUT', `/api/transactions/${t.transaction_id}`, { token: u.token, body: { account_id: u.cash, category_id: u.cat('Food'), amount: 8500, txn_date: t.txn_date, description: 'Groceries' } });
+    await call('PUT', `/api/accounts/${u.cash}`, { token: u.token, body: { account_name: 'Wallet', account_type: 'cash' } });
+    await call('POST', '/api/budgets', { token: u.token, body: { category_id: u.cat('Food'), limit_amount: 10000, month: '2026-11' } });
+    await call('DELETE', `/api/transactions/${t.transaction_id}`, { token: u.token });
+    await call('POST', '/api/transactions', { token: u.token, body: { account_id: u.cash, category_id: u.cat('Salary'), amount: 120000, description: 'Salary' } });
+
+    const activity = await call('GET', '/api/activity', { token: u.token });
+    assert.strictEqual(activity.status, 200);
+    assert.deepStrictEqual(activity.body.map((a) => a.summary), [
+      'Added "Salary": +Rs 120,000 to Wallet',
+      'Deleted "Groceries" (−Rs 8,500 from Wallet)',
+      'Set a Rs 10,000 budget for Food',
+      'Changed the account "Cash": name "Cash" → "Wallet"',
+      'Changed "Groceries": amount Rs 8,000 → Rs 8,500',
+      'Added "Groceries": −Rs 8,000 from Wallet',
+      'Added the account "Cash"',
+    ]);
+    assert.ok(activity.body.every((a) => a.who === 'you'));
+  });
+
+  test('SEC-01 activity never shows another user\'s log', async () => {
+    const owner = await newUser('Private Spender');
+    await call('POST', '/api/transactions', { token: owner.token, body: { account_id: owner.cash, category_id: owner.cat('Food'), amount: 999, description: 'Secret dinner' } });
+    const other = await newUser('Nosy Neighbour');
+    const activity = (await call('GET', '/api/activity?limit=100', { token: other.token })).body;
+    assert.ok(!activity.some((a) => a.summary.includes('Secret dinner')));
+    assert.deepStrictEqual(activity.map((a) => a.summary), ['Added the account "Cash"']);
+  });
+});
+

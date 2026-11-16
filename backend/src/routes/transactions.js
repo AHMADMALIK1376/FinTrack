@@ -39,7 +39,7 @@ router.post('/', async (req, res, next) => {
     if (!(await ownsAccountAndCategory(req.user.id, account_id, category_id))) {
       return res.status(404).json({ error: 'Account or category not found.' });
     }
-    const { rows } = await db.query(
+    const { rows } = await db.asUser(req.user.id,
       `INSERT INTO transactions (account_id, category_id, amount, txn_date, description)
        VALUES ($1, $2, $3, COALESCE($4::date, CURRENT_DATE), $5) RETURNING *`,
       [account_id, category_id, amount, txn_date || null, description]);
@@ -53,7 +53,7 @@ router.put('/:id', async (req, res, next) => {
     if (!(await ownsAccountAndCategory(req.user.id, account_id, category_id))) {
       return res.status(404).json({ error: 'Account or category not found.' });
     }
-    const { rows } = await db.query(
+    const { rows } = await db.asUser(req.user.id,
       `UPDATE transactions t
        SET account_id = $1, category_id = $2, amount = $3, txn_date = $4, description = $5
        FROM accounts a
@@ -67,7 +67,7 @@ router.put('/:id', async (req, res, next) => {
 
 router.delete('/:id', async (req, res, next) => {
   try {
-    const { rowCount } = await db.query(
+    const { rowCount } = await db.asUser(req.user.id,
       `DELETE FROM transactions t USING accounts a
        WHERE t.transaction_id = $1 AND a.account_id = t.account_id AND a.user_id = $2`,
       [req.params.id, req.user.id]);
