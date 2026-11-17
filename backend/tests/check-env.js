@@ -1,5 +1,5 @@
 // Checks that the database settings from backend/.env were loaded, and explains how to fix it if not.
-// Used by server.js and by the tests, so a missing or misnamed .env gives a clear message
+// Used by the tests, so a missing or misnamed .env gives a clear message
 // instead of a confusing database error ("client password must be a string").
 const fs = require('fs');
 const path = require('path');
