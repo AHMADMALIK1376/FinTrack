@@ -1,0 +1,53 @@
+// Line icons used across FinTrack (24 x 24, stroke). Generated from the approved design files.
+const ICONS = {
+"grid": "<rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"2\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"2\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"2\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"2\"/>",
+"swap": "<path d=\"M7 4 3 8l4 4\"/><path d=\"M3 8h14\"/><path d=\"m17 20 4-4-4-4\"/><path d=\"M21 16H7\"/>",
+"wallet": "<path d=\"M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14a2 2 0 0 1 2 2v3\"/><path d=\"M3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3\"/><path d=\"M21 12h-4a2 2 0 0 0 0 4h4z\"/>",
+"pie": "<path d=\"M21 12A9 9 0 1 1 12 3\"/><path d=\"M12 3a9 9 0 0 1 9 9h-9z\"/>",
+"target": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"12\" cy=\"12\" r=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/>",
+"chart": "<path d=\"M3 3v18h18\"/><path d=\"M7 15v2\"/><path d=\"M11 11v6\"/><path d=\"M15 7v10\"/><path d=\"M19 12v5\"/>",
+"gear": "<circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z\"/>",
+"help": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3\"/><path d=\"M12 17h.01\"/>",
+"search": "<circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-3.5-3.5\"/>",
+"bell": "<path d=\"M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9\"/><path d=\"M10.3 21a1.9 1.9 0 0 0 3.4 0\"/>",
+"sun": "<circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2\"/><path d=\"M12 20v2\"/><path d=\"m4.9 4.9 1.4 1.4\"/><path d=\"m17.7 17.7 1.4 1.4\"/><path d=\"M2 12h2\"/><path d=\"M20 12h2\"/><path d=\"m6.3 17.7-1.4 1.4\"/><path d=\"m19.1 4.9-1.4 1.4\"/>",
+"plus": "<path d=\"M12 5v14\"/><path d=\"M5 12h14\"/>",
+"chev": "<path d=\"m6 9 6 6 6-6\"/>",
+"chevr": "<path d=\"m9 6 6 6-6 6\"/>",
+"arrowr": "<path d=\"M5 12h14\"/><path d=\"m13 6 6 6-6 6\"/>",
+"up": "<path d=\"M7 17 17 7\"/><path d=\"M8 7h9v9\"/>",
+"down": "<path d=\"M17 7 7 17\"/><path d=\"M16 17H7V8\"/>",
+"dots": "<circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"19\" cy=\"12\" r=\"1\"/><circle cx=\"5\" cy=\"12\" r=\"1\"/>",
+"filter": "<path d=\"M3 5h18\"/><path d=\"M6 12h12\"/><path d=\"M10 19h4\"/>",
+"alert": "<path d=\"M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z\"/><path d=\"M12 9v4\"/><path d=\"M12 17h.01\"/>",
+"check": "<path d=\"M20 6 9 17l-5-5\"/>",
+"bank": "<path d=\"M3 21h18\"/><path d=\"M3 10h18\"/><path d=\"M12 3 3 8h18z\"/><path d=\"M5 10v8\"/><path d=\"M9.5 10v8\"/><path d=\"M14.5 10v8\"/><path d=\"M19 10v8\"/>",
+"cash": "<rect x=\"2\" y=\"6\" width=\"20\" height=\"12\" rx=\"2\"/><circle cx=\"12\" cy=\"12\" r=\"2.5\"/><path d=\"M6 12h.01\"/><path d=\"M18 12h.01\"/>",
+"phone": "<rect x=\"6\" y=\"2\" width=\"12\" height=\"20\" rx=\"2.5\"/><path d=\"M11 18h2\"/>",
+"card": "<rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M2 10h20\"/>",
+"food": "<path d=\"M3 11h18\"/><path d=\"M5 11a7 7 0 0 0 14 0\"/><path d=\"M12 4v4\"/><path d=\"M8 5l1 3\"/><path d=\"m16 5-1 3\"/>",
+"home": "<path d=\"m3 10 9-7 9 7\"/><path d=\"M5 9v11h14V9\"/><path d=\"M10 20v-6h4v6\"/>",
+"car": "<path d=\"M5 17h14v-5l-2-5H7l-2 5z\"/><circle cx=\"7.5\" cy=\"17\" r=\"1.5\"/><circle cx=\"16.5\" cy=\"17\" r=\"1.5\"/><path d=\"M5 12h14\"/>",
+"bolt": "<path d=\"M13 2 4 14h7l-1 8 9-12h-7z\"/>",
+"bag": "<path d=\"M6 7h12l1 14H5z\"/><path d=\"M9 7V5a3 3 0 0 1 6 0v2\"/>",
+"brief": "<rect x=\"3\" y=\"7\" width=\"18\" height=\"13\" rx=\"2\"/><path d=\"M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/><path d=\"M3 13h18\"/>",
+"laptop": "<rect x=\"4\" y=\"5\" width=\"16\" height=\"11\" rx=\"1.5\"/><path d=\"M2 19h20\"/>",
+"heart": "<path d=\"M12 20s-7-4.4-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.6-9 9-9 9z\"/>",
+"shield": "<path d=\"M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z\"/>",
+"calendar": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M3 10h18\"/><path d=\"M8 3v4\"/><path d=\"M16 3v4\"/>",
+"history": "<path d=\"M3 12a9 9 0 1 0 3-6.7L3 8\"/><path d=\"M3 3v5h5\"/><path d=\"M12 7v5l3 2\"/>",
+"edit": "<path d=\"M4 20h4L19 9l-4-4L4 16z\"/><path d=\"m13.5 6.5 4 4\"/>",
+"trash": "<path d=\"M4 7h16\"/><path d=\"M10 11v6\"/><path d=\"M14 11v6\"/><path d=\"M6 7l1 13h10l1-13\"/><path d=\"M9 7V4h6v3\"/>",
+"mail": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2\"/><path d=\"m3 7 9 6 9-6\"/>",
+"lock": "<rect x=\"5\" y=\"11\" width=\"14\" height=\"10\" rx=\"2\"/><path d=\"M8 11V7a4 4 0 0 1 8 0v4\"/>",
+"eye": "<path d=\"M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>",
+"logout": "<path d=\"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4\"/><path d=\"m16 17 5-5-5-5\"/><path d=\"M21 12H9\"/>",
+"download": "<path d=\"M12 3v12\"/><path d=\"m7 10 5 5 5-5\"/><path d=\"M5 21h14\"/>",
+"x": "<path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/>"
+};
+
+/** Returns an inline SVG icon. label: text for screen readers (otherwise the icon is hidden from them). */
+function icon(name, size = 18, label) {
+  const a11y = label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"';
+  return `<svg class="ft-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ${a11y}>${ICONS[name] || ''}</svg>`;
+}
