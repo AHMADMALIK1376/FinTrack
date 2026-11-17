@@ -55,6 +55,8 @@ transaction belongs to one account and one category.
 - **Views:** `monthly_summary` (income vs. expense per month) and `category_spending` (total spent per category).
 - **Function:** `check_budget(user_id, month)` returns the categories that are over budget.
 - **Stored procedure + atomic transaction:** `transfer_money(from, to, amount)` writes both sides of a transfer as one unit; it fully succeeds or fully fails.
+- **Audit log:** one generic `SECURITY DEFINER` trigger writes every INSERT, UPDATE and DELETE on transactions, accounts and budgets to an append-only `audit_log` (old and new row as JSONB, whose data it is, and who changed it). The website shows it as an **Activity** list.
+- **Roles and privileges:** the website connects as `fintrack_app`, which can work with data but cannot drop or alter tables or touch the audit log; `fintrack_report` can only read the report views.
 - **Indexes:** on `transactions(account_id, txn_date)`, `transactions(category_id)` and the `user_id` columns, to keep reports fast.
 
 See [`database/`](database) for the SQL scripts and some queries to try.
@@ -90,6 +92,8 @@ FinTrack/
 │   ├── 02_triggers.sql        balance trigger + ownership check
 │   ├── 03_views_functions.sql views, check_budget(), transfer_money()
 │   ├── 04_seed.sql            sample data
+│   ├── 05_audit.sql           audit log table and trigger
+│   ├── 06_roles.sql           fintrack_app and fintrack_report roles
 │   └── tests/                 database tests (run in pgAdmin or with npm test)
 ├── backend/               Express REST API
 │   ├── .env.example           copy to .env and fill in
@@ -123,7 +127,7 @@ FinTrack/
 
 1. Open pgAdmin 4, right-click **Databases → Create → Database…** and name it `fintrack`.
 2. Select `fintrack`, open **Tools → Query Tool**.
-3. Open and run (F5) each file from the `database/` folder **in order**: `01_schema.sql`, `02_triggers.sql`, `03_views_functions.sql`, then `04_seed.sql` for sample data.
+3. Open and run (F5) each file from the `database/` folder **in order**: `01_schema.sql`, `02_triggers.sql`, `03_views_functions.sql`, `04_seed.sql` (sample data), `05_audit.sql` (audit log) and `06_roles.sql` (the `fintrack_app` and `fintrack_report` roles).
 
 Or from a terminal:
 
@@ -136,7 +140,7 @@ for f in database/0*.sql; do psql -U postgres -d fintrack -f "$f"; done
 
 ```bash
 cd backend
-cp .env.example .env        # then set PGPASSWORD and JWT_SECRET in .env
+cp .env.example .env        # then set PGADMIN_PASSWORD (your postgres password) and JWT_SECRET
 npm install
 npm start
 ```
@@ -183,6 +187,7 @@ All routes except `/api/auth/*` need the header `Authorization: Bearer <token>`.
 | PATCH | `/api/goals/:id/add` | Add savings to a goal `{ amount }` |
 | DELETE | `/api/goals/:id` | Delete a goal |
 | GET | `/api/reports/dashboard?month=` | Totals, charts data and budget warnings |
+| GET | `/api/activity?limit=20` | The user's audit log as plain sentences, newest first |
 
 ## Screenshots
 

@@ -20,6 +20,8 @@ router.post('/register', async (req, res, next) => {
       `INSERT INTO users (full_name, email, password_hash) VALUES ($1, $2, $3)
        RETURNING user_id, full_name, email`, [full_name.trim(), email.trim().toLowerCase(), hash]);
     const user = rows[0];
+    // DB-09: the starter account below is logged as created by the new user
+    await client.query("SELECT set_config('app.user_id', $1, true)", [String(user.user_id)]);
     // give every new user a starter set of categories and a cash account
     await client.query(
       `INSERT INTO categories (user_id, name, type) VALUES

@@ -29,7 +29,7 @@ router.post('/', async (req, res, next) => {
     if (cats[0].type !== 'expense') {
       return res.status(400).json({ error: 'Budgets can only be set for expense categories.' });
     }
-    const { rows } = await db.query(
+    const { rows } = await db.asUser(req.user.id,
       `INSERT INTO budgets (user_id, category_id, limit_amount, month)
        VALUES ($1, $2, $3, $4::date)
        ON CONFLICT (user_id, category_id, month) DO UPDATE SET limit_amount = EXCLUDED.limit_amount
@@ -40,7 +40,7 @@ router.post('/', async (req, res, next) => {
 
 router.delete('/:id', async (req, res, next) => {
   try {
-    const { rowCount } = await db.query(
+    const { rowCount } = await db.asUser(req.user.id,
       'DELETE FROM budgets WHERE budget_id = $1 AND user_id = $2', [req.params.id, req.user.id]);
     if (!rowCount) return res.status(404).json({ error: 'Budget not found.' });
     res.status(204).end();

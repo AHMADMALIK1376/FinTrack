@@ -1,13 +1,15 @@
 // Test setup: points the app at a separate test database (never your real one), and
 // rebuilds that database from database/0*.sql before each test file runs.
 // Settings come from backend/.env; the test database name is TEST_PGDATABASE (default fintrack_test).
+// Two accounts: the app connects as PGUSER (fintrack_app); rebuilding the database needs the
+// admin account PGADMIN_USER / PGADMIN_PASSWORD (postgres). Without PGADMIN_*, PGUSER is used for both.
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env'), quiet: true });
 const { Client } = require('pg');
 const { checkDatabaseSettings } = require('../src/check-env');
 
-checkDatabaseSettings();
+checkDatabaseSettings({ admin: true });
 
 process.env.PGDATABASE = process.env.TEST_PGDATABASE || 'fintrack_test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-only-secret';
@@ -20,8 +22,13 @@ if (!process.env.PGDATABASE.endsWith('_test')) {
 const DATABASE_DIR = path.join(__dirname, '..', '..', 'database');
 const connection = (database) => ({
   host: process.env.PGHOST, port: Number(process.env.PGPORT) || 5432,
-  user: process.env.PGUSER, password: process.env.PGPASSWORD, database,
+  user: process.env.PGADMIN_USER || process.env.PGUSER,
+  password: process.env.PGADMIN_PASSWORD ?? process.env.PGPASSWORD,
+  database,
 });
+
+// Every numbered script except the sample data, in order: 01_schema … 06_roles
+const SCRIPTS = fs.readdirSync(DATABASE_DIR).filter((f) => /^\d\d_.*\.sql$/.test(f) && f !== '04_seed.sql').sort();
 
 /** Creates the test database if it does not exist yet. */
 async function ensureDatabase() {
@@ -35,14 +42,14 @@ async function ensureDatabase() {
   }
 }
 
-/** Drops and rebuilds every table, trigger, view and function from database/01 – 03 (no sample data). */
+/** Drops and rebuilds every table, trigger, view, function, audit log and role grant (no sample data). */
 async function resetDatabase() {
   await ensureDatabase();
   const client = new Client(connection(process.env.PGDATABASE));
   client.on('notice', () => {});
   await client.connect();
   try {
-    for (const file of ['01_schema.sql', '02_triggers.sql', '03_views_functions.sql']) {
+    for (const file of SCRIPTS) {
       await client.query(fs.readFileSync(path.join(DATABASE_DIR, file), 'utf8'));
     }
   } finally {

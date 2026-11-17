@@ -17,6 +17,7 @@ app.use('/api/transactions', requireAuth, require('./routes/transactions'));
 app.use('/api/budgets', requireAuth, require('./routes/budgets'));
 app.use('/api/goals', requireAuth, require('./routes/goals'));
 app.use('/api/reports', requireAuth, require('./routes/reports'));
+app.use('/api/activity', requireAuth, require('./routes/activity'));
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // Website (HTML, CSS, JS, Bootstrap)
