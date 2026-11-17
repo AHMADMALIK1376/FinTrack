@@ -264,6 +264,53 @@ select.ft-input { appearance: auto; padding-right: 8px; }
 .ft-submit:hover { background: #2559B0; }
 .ft-error { display: flex; gap: 10px; align-items: flex-start; background: #FEF2F2; color: var(--ft-red); border-radius: 14px; padding: 12px 14px; font-size: 14px; }
 
+/* Laptop and desktop: the whole log-in / sign-up page fits in one window, no scrolling.
+   The animation shrinks to the window height; the form side tightens on shorter screens. */
+.ft-shan-say { display: flex; align-items: flex-end; gap: 6px; flex: none; }
+.ft-shan-say img { width: 92px; height: auto; }
+@media (min-width: 992px) {
+  .ft-auth { height: 100vh; min-height: 600px; flex-wrap: nowrap; }
+  .ft-auth-art { flex: 1 1 54%; min-height: 0; padding: 28px; gap: 20px; }
+  .ft-auth-art img { width: auto; max-width: 100%; max-height: calc(100vh - 170px); }
+  .ft-auth-form { flex: 1 1 46%; padding: 24px 40px; gap: 22px; overflow-y: auto; justify-content: center; }
+  .ft-auth-form .inner { gap: 14px; }
+  #authForm.inner { gap: 12px; }
+  .ft-auth h1 { font-size: clamp(26px, 2.6vw, 36px); margin-top: 0; }
+  .ft-auth h2 { font-size: 28px; }
+  .ft-auth .lead-text { font-size: 15px; line-height: 1.5; }
+  .ft-auth-logo img { width: 52px; height: 52px; }
+  .ft-auth-logo .ft-wordmark { font-size: 34px; }
+  .ft-inbox { height: 46px; }
+  .ft-submit { min-height: 48px; }
+  .ft-check { min-height: 30px; }
+  .ft-note { padding: 10px 14px; }
+}
+@media (min-width: 992px) and (max-height: 860px) {
+  .ft-auth { padding: 14px; gap: 14px; }
+  .ft-auth-form { padding: 16px 36px; gap: 14px; }
+  .ft-auth-form .inner { gap: 8px; }
+  #authForm.inner { gap: 10px; }
+  .ft-auth-logo img { width: 42px; height: 42px; }
+  .ft-auth-logo .ft-wordmark { font-size: 28px; }
+  .ft-auth h1 { font-size: clamp(24px, 2.2vw, 30px); }
+  .ft-auth h2 { font-size: 24px; }
+  .ft-auth .lead-text { font-size: 14px; }
+  .ft-shan-say img { width: 70px; }
+  .ft-bubble { padding: 7px 11px; }
+  .ft-field { gap: 4px; }
+  .ft-inbox { height: 42px; }
+  .ft-submit { min-height: 44px; font-size: 15px; }
+  .ft-auth-art .credit { display: none; }
+  .ft-auth-art img { max-height: calc(100vh - 110px); }
+}
+@media (min-width: 992px) and (max-height: 700px) {
+  .ft-auth .lead-text, .ft-auth-art .chips, #pwHint { display: none !important; }
+  .ft-auth-art img { max-height: calc(100vh - 60px); }
+  .ft-auth h1 { font-size: 24px; }
+  .ft-shan-say img { width: 58px; }
+  .ft-bubble span { display: none; }
+}
+
 /* ---------- phone: bottom tab bar instead of the sidebar ---------- */
 .ft-phone-head { display: none; }
 .ft-tabbar { display: none; }
