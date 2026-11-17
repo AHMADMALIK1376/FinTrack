@@ -12,7 +12,6 @@
   <img alt="pgAdmin 4" src="https://img.shields.io/badge/pgAdmin_4-2F6FD6">
   <img alt="PHP" src="https://img.shields.io/badge/PHP_8-777BB4?logo=php&logoColor=white">
   <img alt="Bootstrap 5" src="https://img.shields.io/badge/Bootstrap_5-7952B3?logo=bootstrap&logoColor=white">
-  <img alt="Chart.js" src="https://img.shields.io/badge/Chart.js-FF6384?logo=chartdotjs&logoColor=white">
   <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-3CCB8E">
 </p>
 
@@ -38,7 +37,7 @@ database itself** (keys, constraints, triggers, views, functions and transaction
 | 🏷️ **Categories** | Income and expense types such as Salary, Food, Rent and Bills. New users get a starter set. |
 | 💸 **Transactions** | Add, edit, delete, search and filter income and expenses by month, type and category. |
 | 🎯 **Budgets & goals** | Monthly spending limit per category, with progress bars, plus savings goals with a target and deadline. |
-| 📊 **Dashboard & reports** | Total balance, this month's income vs. expense, 6-month trend chart, spending by category and budget warnings. |
+| 📊 **Dashboard & reports** | Total balance, this month's income and expense, a 6-month money-flow chart, budget usage, savings goals and budget warnings from Shan, our snow-leopard mascot. |
 
 ## Database design
 
@@ -71,8 +70,7 @@ See [`database/`](database) for the SQL scripts and some queries to try.
 | Database | PostgreSQL 14+ |
 | Database management | pgAdmin 4 |
 | Query language | SQL and PL/pgSQL |
-| Front end | HTML5, CSS3, JavaScript, Bootstrap 5, Bootstrap Icons |
-| Charts | Chart.js |
+| Front end | HTML5, CSS3, JavaScript, Bootstrap 5 (grid, menus, pop-ups); charts drawn with plain HTML and CSS |
 | Back end | PHP 8 with PDO (`pdo_pgsql`), JWT login, bcrypt (`password_hash`) |
 
 A web browser cannot connect to PostgreSQL directly, so a small PHP API sits between the website and the
@@ -106,13 +104,15 @@ FinTrack/
 │       └── routes/            auth, accounts, categories, transactions, budgets, goals, reports, activity
 ├── frontend/              the website
 │   ├── index.html             log in / register
-│   ├── dashboard.html         stats, charts, budget warnings
+│   ├── dashboard.html         balance, income, expense, money flow, budget usage, goals
 │   ├── transactions.html      list, filter, add, edit, delete
 │   ├── accounts.html          accounts, transfers, categories
 │   ├── budgets.html           budgets and savings goals
 │   ├── css/style.css          FinTrack theme
 │   ├── js/api.js              shared API and helper code
-│   └── vendor/                Bootstrap, icons, Chart.js (works offline)
+│   ├── js/layout.js           sidebar, top bar, Shan's tips, phone tab bar
+│   ├── assets/                logo, Shan the mascot, log-in animation (SVG)
+│   └── vendor/                Bootstrap (works offline)
 └── docs/                  proposal, diagrams, logo, screenshots
 ```
 
@@ -197,6 +197,10 @@ All routes except `/api/auth/*` need the header `Authorization: Bearer <token>`.
 | ![Login](docs/screenshots/login.png) | ![Transactions](docs/screenshots/transactions.png) |
 | **Accounts** | **Budgets & goals** |
 | ![Accounts](docs/screenshots/accounts.png) | ![Budgets](docs/screenshots/budgets.png) |
+
+On a phone the sidebar becomes a bottom tab bar with a big "+" for adding a transaction:
+
+<img src="docs/screenshots/phone.png" alt="FinTrack dashboard on a phone" width="260">
 
 ## Project plan (6 weeks)
 

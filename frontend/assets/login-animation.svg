@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg class="ft2" viewBox="0 0 620 420" role="img" aria-label="Animation: a balance card, income and expense bars growing month by month, a rising savings line, a savings goal filling to 72 percent, and notifications for a salary, a budget alert and a transfer" font-family="Inter, Segoe UI, system-ui, sans-serif" xmlns="http://www.w3.org/2000/svg" width="620" height="420">
+  <style>
+.ft2 .rise{animation:ft2-rise 10s cubic-bezier(.2,.9,.25,1.1) infinite both}
+.ft2 .bar{transform-box:fill-box;transform-origin:50% 100%;animation:ft2-grow 10s cubic-bezier(.3,1.5,.5,1) infinite both}
+.ft2 .line{stroke-dasharray:440;animation:ft2-draw 10s ease-in-out 1.6s infinite both}
+.ft2 .glow{stroke-dasharray:440;animation:ft2-draw 10s ease-in-out 1.6s infinite both;opacity:.35}
+.ft2 .runner{offset-rotate:0deg;animation:ft2-run 10s ease-in-out 1.6s infinite both}
+.ft2 .pulse{transform-box:fill-box;transform-origin:center;animation:ft2-pulse 1.8s ease-out 3.1s infinite both}
+.ft2 .ring{stroke-dasharray:239;stroke-dashoffset:67;animation:ft2-ring 10s cubic-bezier(.4,0,.2,1) 1.9s infinite both}
+.ft2 .pop{transform-box:fill-box;transform-origin:center;animation:ft2-pop 10s cubic-bezier(.3,1.6,.5,1) infinite both}
+.ft2 .toast{animation:ft2-toast 10s cubic-bezier(.3,1.4,.5,1) infinite both}
+.ft2 .shine{animation:ft2-shine 10s ease-in-out .5s infinite both}
+.ft2 .coin{transform-box:fill-box;transform-origin:center;animation:ft2-float 7s linear infinite both}
+.ft2 .spark{transform-box:fill-box;transform-origin:center;animation:ft2-twinkle 2.6s ease-in-out infinite both}
+@keyframes ft2-rise{0%{transform:translateY(24px);opacity:0}7%{transform:translateY(0);opacity:1}88%{transform:translateY(0);opacity:1}96%,100%{transform:translateY(-8px);opacity:0}}
+@keyframes ft2-grow{0%{transform:scaleY(0)}10%{transform:scaleY(1)}86%{transform:scaleY(1);opacity:1}94%,100%{transform:scaleY(1);opacity:0}}
+@keyframes ft2-draw{0%{stroke-dashoffset:440}16%{stroke-dashoffset:0}80%{stroke-dashoffset:0;opacity:1}88%,100%{stroke-dashoffset:0;opacity:0}}
+@keyframes ft2-run{0%{offset-distance:0%;opacity:0}2%{opacity:1}16%{offset-distance:100%}80%{offset-distance:100%;opacity:1}88%,100%{offset-distance:100%;opacity:0}}
+@keyframes ft2-pulse{0%{transform:scale(.6);opacity:0}8%{opacity:.7}100%{transform:scale(2.6);opacity:0}}
+@keyframes ft2-ring{0%{stroke-dashoffset:239}18%{stroke-dashoffset:67}78%{stroke-dashoffset:67;opacity:1}86%,100%{stroke-dashoffset:67;opacity:0}}
+@keyframes ft2-pop{0%{transform:scale(0);opacity:0}6%{transform:scale(1);opacity:1}80%{transform:scale(1);opacity:1}88%,100%{transform:scale(.9);opacity:0}}
+@keyframes ft2-toast{0%{transform:translateX(40px);opacity:0}6%{transform:translateX(0);opacity:1}62%{transform:translateX(0);opacity:1}70%,100%{transform:translateX(40px);opacity:0}}
+@keyframes ft2-shine{0%{transform:translateX(-120px)}12%,100%{transform:translateX(320px)}}
+@keyframes ft2-float{0%{transform:translateY(40px) rotate(0deg);opacity:0}15%{opacity:.9}85%{opacity:.9}100%{transform:translateY(-420px) rotate(25deg);opacity:0}}
+@keyframes ft2-twinkle{0%,100%{transform:scale(.4);opacity:.2}50%{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion: reduce){.ft2 *{animation:none!important}.ft2 .coin,.ft2 .spark,.ft2 .runner,.ft2 .pulse{display:none}}
+</style>
+  <defs>
+    <linearGradient id="ft2-shine" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/><stop offset=".5" stop-color="#FFFFFF" stop-opacity=".55"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+    <clipPath id="ft2-balclip"><rect x="16" y="16" width="270" height="92" rx="18"/></clipPath>
+    <path id="ft2-path" d="M64 280 L118 265 L172 282 L226 258 L280 245 L334 200"/>
+  </defs>
+  <g aria-hidden="true"><g class="coin" style="animation-delay:0.00s"><circle cx="388" cy="400" r="11" fill="#3CCB8E" opacity=".9"/><text x="388" y="403.9" text-anchor="middle" font-size="9" font-weight="800" fill="#1C2B44">Rs</text></g><g class="coin" style="animation-delay:2.30s"><circle cx="24" cy="420" r="8" fill="#3CCB8E" opacity=".9"/><text x="24" y="422.8" text-anchor="middle" font-size="7" font-weight="800" fill="#1C2B44">Rs</text></g><g class="coin" style="animation-delay:4.60s"><circle cx="590" cy="430" r="9" fill="#3CCB8E" opacity=".9"/><text x="590" y="433.1" text-anchor="middle" font-size="8" font-weight="800" fill="#1C2B44">Rs</text></g><g class="coin" style="animation-delay:1.20s"><circle cx="300" cy="440" r="7" fill="#3CCB8E" opacity=".9"/><text x="300" y="442.4" text-anchor="middle" font-size="6" font-weight="800" fill="#1C2B44">Rs</text></g><path class="spark" style="animation-delay:0.00s" d="M282 23 L284 28 L289 30 L284 32 L282 37 L280 32 L275 30 L280 28 Z" fill="#FFFFFF"/><path class="spark" style="animation-delay:0.90s" d="M604 189 L606 194 L611 196 L606 198 L604 203 L602 198 L597 196 L602 194 Z" fill="#FFFFFF"/><path class="spark" style="animation-delay:1.70s" d="M14 143 L16 148 L21 150 L16 152 L14 157 L12 152 L7 150 L12 148 Z" fill="#FFFFFF"/><path class="spark" style="animation-delay:2.20s" d="M382 109 L384 114 L389 116 L384 118 L382 123 L380 118 L375 116 L380 114 Z" fill="#FFFFFF"/></g>
+
+  <g class="rise">
+    <rect x="16" y="16" width="270" height="92" rx="18" fill="#FFFFFF"/>
+    <text x="36" y="44" font-size="11" fill="#64748B">Total balance</text>
+    <text x="36" y="78" font-size="27" font-weight="700" fill="#0F172A" letter-spacing="-.5">Rs 87,500<tspan fill="#9AA3B2">.00</tspan></text>
+    <g class="pop" style="animation-delay:0.40s"><rect x="200" y="30" width="70" height="22" rx="11" fill="#DCFCE7"/><text x="235" y="45" text-anchor="middle" font-size="11" font-weight="700" fill="#15803D">+12% ↑</text></g>
+    <g clip-path="url(#ft2-balclip)"><g transform="skewX(-18)"><rect class="shine" x="16" y="16" width="90" height="92" fill="url(#ft2-shine)"/></g></g>
+  </g>
+
+  <g class="rise" style="animation-delay:0.15s">
+    <rect x="16" y="122" width="374" height="278" rx="20" fill="#FFFFFF"/>
+    <text x="36" y="152" font-size="14" font-weight="700" fill="#0F172A">Money flow</text>
+    <text x="36" y="170" font-size="10.5" fill="#64748B">Last 6 months</text>
+    <rect x="252" y="143" width="9" height="9" rx="2" fill="#2F6FD6"/><text x="265" y="151" font-size="10" fill="#334155">Income</text>
+    <rect x="310" y="143" width="9" height="9" rx="2" fill="#3CCB8E"/><text x="323" y="151" font-size="10" fill="#334155">Expense</text>
+    <line x1="36" y1="360" x2="370" y2="360" stroke="#E7ECF2"/>
+    <rect class="bar" style="animation-delay:0.60s" x="44" y="268" width="19" height="92" rx="6" fill="#2F6FD6"/><rect class="bar" style="animation-delay:0.66s" x="65" y="296" width="19" height="64" rx="6" fill="#3CCB8E"/><text x="64" y="378" text-anchor="middle" font-size="10" fill="#64748B">Jun</text><rect class="bar" style="animation-delay:0.72s" x="98" y="248" width="19" height="112" rx="6" fill="#2F6FD6"/><rect class="bar" style="animation-delay:0.78s" x="119" y="288" width="19" height="72" rx="6" fill="#3CCB8E"/><text x="118" y="378" text-anchor="middle" font-size="10" fill="#64748B">Jul</text><rect class="bar" style="animation-delay:0.84s" x="152" y="276" width="19" height="84" rx="6" fill="#2F6FD6"/><rect class="bar" style="animation-delay:0.90s" x="173" y="302" width="19" height="58" rx="6" fill="#3CCB8E"/><text x="172" y="378" text-anchor="middle" font-size="10" fill="#64748B">Aug</text><rect class="bar" style="animation-delay:0.96s" x="206" y="226" width="19" height="134" rx="6" fill="#2F6FD6"/><rect class="bar" style="animation-delay:1.02s" x="227" y="272" width="19" height="88" rx="6" fill="#3CCB8E"/><text x="226" y="378" text-anchor="middle" font-size="10" fill="#64748B">Sep</text><rect class="bar" style="animation-delay:1.08s" x="260" y="238" width="19" height="122" rx="6" fill="#2F6FD6"/><rect class="bar" style="animation-delay:1.14s" x="281" y="294" width="19" height="66" rx="6" fill="#3CCB8E"/><text x="280" y="378" text-anchor="middle" font-size="10" fill="#64748B">Oct</text><rect class="bar" style="animation-delay:1.20s" x="314" y="198" width="19" height="162" rx="6" fill="#2F6FD6"/><rect class="bar" style="animation-delay:1.26s" x="335" y="290" width="19" height="70" rx="6" fill="#3CCB8E"/><text x="334" y="378" text-anchor="middle" font-size="10" fill="#64748B">Nov</text>
+    <path class="glow" d="M64 280 L118 265 L172 282 L226 258 L280 245 L334 200" fill="none" stroke="#3CCB8E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <path class="line" d="M64 280 L118 265 L172 282 L226 258 L280 245 L334 200" fill="none" stroke="#1C2B44" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle class="pulse" cx="334" cy="200" r="7" fill="#3CCB8E"/>
+    <circle class="runner" r="6" fill="#1C2B44" stroke="#FFFFFF" stroke-width="2.5" style="offset-path:path('M64 280 L118 265 L172 282 L226 258 L280 245 L334 200')"/>
+    <g class="pop" style="animation-delay:3.00s"><rect x="248" y="186" width="74" height="26" rx="9" fill="#1C2B44"/><text x="285" y="203" text-anchor="middle" font-size="11" font-weight="700" fill="#FFFFFF">+Rs 87,500</text></g>
+  </g>
+
+  <g class="rise" style="animation-delay:0.30s">
+    <rect x="404" y="16" width="196" height="184" rx="20" fill="#FFFFFF"/>
+    <text x="502" y="44" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0F172A">New laptop</text>
+    <circle cx="502" cy="106" r="38" fill="none" stroke="#EEF2F7" stroke-width="11"/>
+    <circle class="ring" cx="502" cy="106" r="38" fill="none" stroke="#3CCB8E" stroke-width="11" stroke-linecap="round" transform="rotate(-90 502 106)"/>
+    <g class="pop" style="animation-delay:2.60s"><text x="502" y="112" text-anchor="middle" font-size="19" font-weight="800" fill="#0F172A">72%</text></g>
+    <text x="502" y="170" text-anchor="middle" font-size="10.5" fill="#64748B">Rs 130,000 of Rs 180,000</text>
+    <text x="502" y="186" text-anchor="middle" font-size="10" fill="#94A3B8">savings goal</text>
+  </g>
+  <g class="toast" style="animation-delay:2.80s"><rect x="404" y="214" width="196" height="54" rx="15" fill="#FFFFFF"/><circle cx="430" cy="241" r="14" fill="#DCFCE7"/><path d="M424 247 L436 235 M428 235 H436 V243" stroke="#15803D" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="452" y="237" font-size="12.5" font-weight="700" fill="#15803D">+Rs 120,000</text><text x="452" y="254" font-size="10.5" fill="#475569">Salary received · HBL Bank</text></g><g class="toast" style="animation-delay:3.80s"><rect x="404" y="276" width="196" height="54" rx="15" fill="#FFFFFF"/><circle cx="430" cy="303" r="14" fill="#FEF3C7"/><path d="M430 296 V304 M430 309 V309.5" stroke="#B45309" stroke-width="2.6" stroke-linecap="round"/><text x="452" y="299" font-size="12.5" font-weight="700" fill="#0F172A">Food at 80%</text><text x="452" y="316" font-size="10.5" fill="#475569">Budget alert · Rs 2,000 left</text></g><g class="toast" style="animation-delay:4.80s"><rect x="404" y="338" width="196" height="54" rx="15" fill="#FFFFFF"/><circle cx="430" cy="365" r="14" fill="#E0EAFB"/><path d="M423 361 H437 M433 357 L437 361 L433 365 M437 371 H423 M427 367 L423 371 L427 375" stroke="#2F6FD6" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="452" y="361" font-size="12.5" font-weight="700" fill="#0F172A">Transfer complete</text><text x="452" y="378" font-size="10.5" fill="#475569">Rs 5,000 · Bank → Cash</text></g>
+</svg>

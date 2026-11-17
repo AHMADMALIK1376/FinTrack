@@ -5,108 +5,246 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="assets/icon.svg">
 <link href="vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
-<link href="vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
-<div id="navbar"></div>
-<main class="container py-4">
-  <h2 class="mb-4">Accounts &amp; Categories</h2>
-  <div class="row g-3 mb-4" id="accountCards"></div>
-  <div class="row g-3">
-    <div class="col-lg-4"><div class="ft-card p-4 h-100">
-      <h5>Add account</h5>
-      <form id="accountForm">
-        <input name="account_name" class="form-control mb-2" placeholder="e.g. HBL Bank" required>
-        <select name="account_type" class="form-select mb-3"><option value="bank">Bank</option><option value="cash">Cash</option><option value="wallet">Wallet (JazzCash, Easypaisa)</option><option value="card">Card</option></select>
-        <button class="btn btn-primary w-100">Add account</button>
-      </form>
-    </div></div>
-    <div class="col-lg-4"><div class="ft-card p-4 h-100">
-      <h5>Transfer money</h5>
-      <form id="transferForm">
-        <label class="form-label small">From</label><select name="from_account" class="form-select mb-2 acc-select" required></select>
-        <label class="form-label small">To</label><select name="to_account" class="form-select mb-2 acc-select" required></select>
-        <input type="number" name="amount" min="1" step="0.01" class="form-control mb-3" placeholder="Amount (Rs)" required>
-        <button class="btn btn-primary w-100">Transfer</button>
-      </form>
-      <p class="small text-muted-ft mt-2 mb-0">Runs as one database transaction: both sides are saved, or neither.</p>
-    </div></div>
-    <div class="col-lg-4"><div class="ft-card p-4 h-100">
-      <h5>Categories</h5>
-      <form id="categoryForm" class="d-flex gap-2 mb-3">
-        <input name="name" class="form-control" placeholder="New category" required>
-        <select name="type" class="form-select" style="max-width:120px"><option value="expense">Expense</option><option value="income">Income</option></select>
-        <button class="btn btn-primary"><i class="bi bi-plus-lg"></i></button>
-      </form>
-      <div id="categoryList" class="d-flex flex-wrap gap-2"></div>
-    </div></div>
-  </div>
-  <div class="ft-card p-4 mt-3">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h5 class="mb-0">Activity</h5>
-      <span class="badge rounded-pill text-bg-light"><i class="bi bi-clock-history me-1"></i>Audit log</span>
-    </div>
-    <p class="small text-muted-ft">Every change to your transactions, accounts and budgets, recorded by the database.</p>
-    <ul id="activityList" class="list-unstyled mb-0"></ul>
-  </div>
-</main>
-<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
-<script src="js/api.js"></script>
-<script>
-  auth.requireLogin();
-  renderNavbar('accounts.html');
-  const icons = { bank: 'bank', cash: 'cash-stack', wallet: 'phone', card: 'credit-card' };
-  const tints = ['bg-sky', 'bg-mint', 'bg-peach', 'bg-lav'];
+<a class="visually-hidden-focusable" href="#content">Skip to content</a>
+<div class="ft-app">
+  <aside class="ft-card ft-side" id="sidebar"></aside>
+  <main class="ft-main" id="content">
+    <header class="ft-top" id="topbar"></header>
 
-  const actionIcons = { INSERT: 'plus-lg', UPDATE: 'pencil', DELETE: 'trash' };
-  const whoText = { you: 'You', database: 'Changed directly in the database', 'someone else': 'Someone else' };
+    <section class="ft-card d-flex flex-column gap-3">
+      <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+        <div class="d-flex flex-column gap-2"><p class="ft-muted" style="font-size:13px" id="totalLabel">Total across your accounts</p><p class="ft-big" style="font-size:44px" id="total">–</p></div>
+        <div class="d-flex flex-wrap gap-2" id="typePills"></div>
+      </div>
+      <div class="ft-split-bar" role="img" id="splitBar"></div>
+    </section>
+
+    <div class="ft-grid-3" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))" id="cards"></div>
+
+    <div class="ft-row">
+      <!-- transfer -->
+      <section class="ft-card d-flex flex-column gap-3" style="flex:1 1 320px">
+        <div><h2 class="ft-label">Transfer money</h2><p class="ft-muted mt-1">Moves money between your own accounts in one step.</p></div>
+        <form id="transferForm" class="d-flex flex-column gap-3" novalidate>
+          <div class="d-flex flex-column gap-2">
+            <div class="ft-field"><label for="from">From</label><select id="from" class="ft-input"></select></div>
+            <div class="d-flex justify-content-center" style="margin:-2px 0"><button class="ft-iconbtn" type="button" id="swapBtn" aria-label="Swap the two accounts" style="width:40px;height:40px;border-radius:50%"><span data-i="swap"></span></button></div>
+            <div class="ft-field"><label for="to">To</label><select id="to" class="ft-input"></select></div>
+          </div>
+          <div class="ft-field"><label for="tAmount">Amount (Rs)</label><input id="tAmount" class="ft-input" inputmode="decimal" placeholder="e.g. 5,000" style="font-size:16px;font-weight:600" autocomplete="off"></div>
+          <div class="d-flex flex-wrap gap-2" id="quick"></div>
+          <button class="ft-btn lg" id="transferBtn">Transfer</button>
+          <p class="ft-muted d-flex gap-2 align-items-start" style="line-height:1.5"><span data-i="shield"></span>Both sides are saved together, or not at all. You can't send more than the balance.</p>
+        </form>
+      </section>
+
+      <!-- categories -->
+      <section class="ft-card d-flex flex-column gap-3" style="flex:1 1 360px">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2"><h2 class="ft-label">Categories</h2><span class="ft-muted">Numbers show this month's entries</span></div>
+        <form id="categoryForm" class="d-flex gap-2" novalidate>
+          <input id="catName" aria-label="New category name" class="ft-input" placeholder="New category, e.g. Education" maxlength="50" style="flex:1;min-width:0">
+          <select id="catType" aria-label="Category type" class="ft-input" style="width:118px"><option value="expense">Expense</option><option value="income">Income</option></select>
+          <button class="ft-iconbtn" aria-label="Add category" style="background:var(--ft-brand);color:#fff;border:0"><span data-i="plus"></span></button>
+        </form>
+        <div><p class="ft-sec" style="margin:0 0 8px">Income</p><div class="d-flex flex-wrap gap-2" id="incomeCats"></div></div>
+        <div><p class="ft-sec" style="margin:0 0 8px">Expense</p><div class="d-flex flex-wrap gap-2" id="expenseCats"></div></div>
+        <p class="ft-muted" style="line-height:1.5">A category that already has transactions can't be removed, so your history stays correct.</p>
+      </section>
+
+      <!-- activity (audit log) -->
+      <section class="ft-card d-flex flex-column gap-1" style="flex:1 1 320px">
+        <div class="d-flex justify-content-between align-items-center"><h2 class="ft-label">Activity</h2><span class="ft-pill"><span data-i="history"></span>Audit log</span></div>
+        <p class="ft-muted mt-1">Every change to your transactions, accounts and budgets, recorded by the database.</p>
+        <ul class="ft-activity" id="activity"></ul>
+        <button class="ft-link border-0 bg-transparent pt-2 px-0 align-self-start" type="button" id="historyBtn">See full history <span data-i="arrowr"></span></button>
+      </section>
+    </div>
+  </main>
+</div>
+<nav class="ft-tabbar" id="tabbar" aria-label="Main"></nav>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/api.js"></script>
+<script src="js/layout.js"></script>
+<script>
+  shell.render('accounts.html', {
+    title: 'Accounts', sub: 'Your banks, cash and wallets, and how money moves between them',
+    actions: `<button class="ft-btn" type="button" onclick="addAccount()">${icon('plus', 18)}Add account</button>`,
+  });
+  document.querySelectorAll('[data-i]').forEach((el) => { el.outerHTML = icon(el.dataset.i, 16); });
+  const $ = (id) => document.getElementById(id);
+  let accounts = [], categories = [], historyLimit = 6;
+  const STYLES = ['ink', 'blue', 'white'];
+  const TYPE_OPTIONS = Object.entries(ACCOUNT_TYPES).map(([v, t]) => [v, v === 'wallet' ? 'Wallet (JazzCash, Easypaisa)' : t]);
+
+  async function load() {
+    const [accs, cats, txns] = await Promise.all([api('/accounts'), api('/categories'), api('/transactions?month=' + thisMonth())]);
+    accounts = accs; categories = cats;
+    const total = accounts.reduce((s, a) => s + Number(a.balance), 0);
+    $('total').innerHTML = moneyBig(total);
+    $('totalLabel').textContent = `Total across ${accounts.length} account${accounts.length === 1 ? '' : 's'}`;
+
+    // share of money by account type
+    const byType = {};
+    accounts.forEach((a) => { byType[a.account_type] = (byType[a.account_type] || 0) + Math.max(0, Number(a.balance)); });
+    const positive = Object.values(byType).reduce((s, v) => s + v, 0);
+    const typeEntries = Object.entries(byType).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+    const colours = ['var(--ft-ink)', 'var(--ft-brand)', 'var(--ft-accent)', '#CBD5E1'];
+    $('typePills').innerHTML = typeEntries.map(([t, v]) => `<span class="ft-pill">${icon(accIcon(t), 14)}${ACCOUNT_TYPES[t]} ${pct(v, positive)}%</span>`).join('');
+    $('splitBar').setAttribute('aria-label', typeEntries.map(([t, v]) => `${ACCOUNT_TYPES[t]} ${pct(v, positive)}%`).join(', ') || 'No money yet');
+    $('splitBar').innerHTML = typeEntries.map(([, v], i) => `<span style="flex:${v};background:${colours[i]}"></span>`).join('') || '<span class="ft-stripe" style="flex:1"></span>';
+
+    // one card per account with this month's money in and out
+    const flow = {};
+    txns.forEach((t) => {
+      const f = flow[t.account_id] || (flow[t.account_id] = { in: 0, out: 0, n: 0 });
+      f[t.type === 'income' ? 'in' : 'out'] += Number(t.amount); f.n += 1;
+    });
+    $('cards').innerHTML = accounts.map((a, i) => {
+      const f = flow[a.account_id] || { in: 0, out: 0, n: 0 };
+      return `<article class="ft-acct ${STYLES[i % 3]}">
+        <div class="ring" aria-hidden="true"></div>
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="ico">${icon(accIcon(a.account_type), 22)}</span>
+          <div class="dropdown">
+            <button class="menu" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Options for ${esc(a.account_name)}">${icon('dots', 18)}</button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><button class="dropdown-item" type="button" onclick="editAccount(${i})">${icon('edit', 16)}Rename or change type</button></li>
+              <li><a class="dropdown-item" href="transactions.html">${icon('swap', 16)}See transactions</a></li>
+              <li><button class="dropdown-item text-danger" type="button" onclick="deleteAccount(${i})">${icon('trash', 16)}Delete account</button></li>
+            </ul>
+          </div>
+        </div>
+        <div class="d-flex flex-column gap-2">
+          <p class="m-0" style="font-size:13px;opacity:.8">${esc(a.account_name)} · ${ACCOUNT_TYPES[a.account_type]}</p>
+          <p class="ft-big">${moneyBig(a.balance)}</p>
+        </div>
+        <div class="meta"><span>+${moneyShort(f.in)} in · −${moneyShort(f.out)} out</span><span>${f.n} entr${f.n === 1 ? 'y' : 'ies'}</span></div>
+      </article>`;
+    }).join('') + `<button class="ft-dashed" type="button" onclick="addAccount()" style="min-height:210px">
+      <span class="plus">${icon('plus', 22)}</span><span class="fw-semibold" style="font-size:14px">Add account</span><span class="ft-muted">Bank, cash, wallet or card</span></button>`;
+
+    // transfer selects
+    const opts = accounts.map((a) => `<option value="${a.account_id}">${esc(a.account_name)} · ${money(a.balance)}</option>`).join('');
+    const [from, to] = [$('from').value, $('to').value];
+    $('from').innerHTML = opts; $('to').innerHTML = opts;
+    $('from').value = from || accounts[0]?.account_id || '';
+    $('to').value = to || accounts[1]?.account_id || accounts[0]?.account_id || '';
+    updateTransferButton();
+
+    // categories, grouped, with this month's entry counts
+    const counts = {};
+    txns.forEach((t) => { counts[t.category_id] = (counts[t.category_id] || 0) + 1; });
+    const chip = (c) => `<span class="ft-catchip"><span style="color:${c.type === 'income' ? 'var(--ft-green)' : '#334155'}">${icon(catIcon(c.name), 16)}</span>${esc(c.name)}
+      <span class="ft-count">${counts[c.category_id] || 0}</span>
+      <button type="button" onclick="deleteCategory(${c.category_id})" aria-label="Remove ${esc(c.name)}">${icon('x', 14)}</button></span>`;
+    $('incomeCats').innerHTML = categories.filter((c) => c.type === 'income').map(chip).join('') || '<span class="ft-muted">None yet</span>';
+    $('expenseCats').innerHTML = categories.filter((c) => c.type === 'expense').map(chip).join('') || '<span class="ft-muted">None yet</span>';
+    await loadActivity();
+  }
+
+  // ---------- activity ----------
+  const ACTION_ICONS = { INSERT: 'plus', UPDATE: 'edit', DELETE: 'trash' };
+  const WHO = { you: 'You', database: 'Changed directly in the database', 'someone else': 'Someone else' };
   function timeAgo(when) {
     const minutes = Math.round((Date.now() - new Date(when)) / 60000);
     if (minutes < 1) return 'just now';
     if (minutes < 60) return `${minutes} min ago`;
     if (minutes < 1440) return `${Math.round(minutes / 60)} h ago`;
-    return new Date(when).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (minutes < 2880) return 'Yesterday';
+    return dateLabel(new Date(when).toISOString());
   }
-
   async function loadActivity() {
-    const entries = await api('/activity?limit=15');
-    activityList.innerHTML = entries.map((e) => `<li class="d-flex gap-3 align-items-start py-2 border-bottom">
-      <span class="rounded-3 bg-sky d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width:34px;height:34px"><i class="bi bi-${actionIcons[e.action]}"></i></span>
-      <span><span class="d-block">${esc(e.summary)}</span><span class="small text-muted-ft">${whoText[e.who]} · ${timeAgo(e.changed_at)}</span></span></li>`).join('')
-      || '<li class="empty">No changes yet. Add a transaction and it will show up here.</li>';
+    const entries = await api('/activity?limit=' + historyLimit);
+    $('activity').innerHTML = entries.map((e) => `<li>
+      <span class="ico">${icon(e.table_name === 'budgets' ? 'pie' : ACTION_ICONS[e.action], 16)}</span>
+      <span class="d-flex flex-column gap-1" style="min-width:0"><span class="txt">${esc(e.summary)}</span><span class="ft-muted">${WHO[e.who]} · ${timeAgo(e.changed_at)}</span></span></li>`).join('')
+      || '<li class="ft-empty border-0 d-block">No changes yet. Add a transaction and it will show up here.</li>';
+    $('historyBtn').classList.toggle('d-none', entries.length < historyLimit || historyLimit >= 100);
   }
+  $('historyBtn').addEventListener('click', attempt(async () => { historyLimit = 100; await loadActivity(); }));
 
-  async function load() {
-    loadActivity().catch((e) => toast(e.message, 'danger'));
-    const [accounts, categories] = await Promise.all([api('/accounts'), api('/categories')]);
-    accountCards.innerHTML = accounts.map((a, i) => `<div class="col-sm-6 col-lg-3"><div class="ft-stat ${tints[i % 4]} h-100">
-      <div class="d-flex justify-content-between"><div class="label"><i class="bi bi-${icons[a.account_type]} me-1"></i>${esc(a.account_type)}</div>
-      <button class="btn btn-sm btn-link text-muted p-0" title="Delete" onclick="removeAccount(${a.account_id})"><i class="bi bi-trash"></i></button></div>
-      <div class="fw-semibold mt-1">${esc(a.account_name)}</div><div class="value">${money(a.balance)}</div></div></div>`).join('');
-    document.querySelectorAll('.acc-select').forEach((s) => s.innerHTML = accounts.map((a) => `<option value="${a.account_id}">${esc(a.account_name)} (${money(a.balance)})</option>`).join(''));
-    categoryList.innerHTML = categories.map((c) => `<span class="badge rounded-pill ${c.type === 'income' ? 'text-bg-success' : 'text-bg-light'} p-2">
-      ${esc(c.name)} <a href="#" class="ms-1 text-reset" onclick="removeCategory(${c.category_id});return false">×</a></span>`).join('');
+  // ---------- accounts ----------
+  window.addAccount = attempt(async () => {
+    const v = await formDialog({ title: 'Add account', submit: 'Add account', fields: [
+      { name: 'account_name', label: 'Account name', placeholder: 'e.g. HBL Bank', required: true, max: 50 },
+      { name: 'account_type', label: 'Type', options: TYPE_OPTIONS, value: 'bank' }] });
+    if (!v) return;
+    await api('/accounts', { method: 'POST', body: v });
+    toast('Account added');
+    await load(); shell.refresh();
+  });
+  window.editAccount = attempt(async (i) => {
+    const a = accounts[i];
+    const v = await formDialog({ title: `Change "${a.account_name}"`, fields: [
+      { name: 'account_name', label: 'Account name', value: a.account_name, required: true, max: 50 },
+      { name: 'account_type', label: 'Type', options: TYPE_OPTIONS, value: a.account_type }] });
+    if (!v) return;
+    await api('/accounts/' + a.account_id, { method: 'PUT', body: v });
+    toast('Account updated');
+    await load();
+  });
+  window.deleteAccount = attempt(async (i) => {
+    const a = accounts[i];
+    const ok = await confirmAction({ title: `Delete "${a.account_name}"?`, text: 'This also deletes every transaction in this account. The activity log keeps a record of it.', confirm: 'Delete account' });
+    if (!ok) return;
+    await api('/accounts/' + a.account_id, { method: 'DELETE' });
+    toast('Account deleted');
+    await load(); shell.refresh();
+  });
+
+  // ---------- transfer ----------
+  const transferAmount = () => Number(String($('tAmount').value).replace(/[,\s]/g, '').replace(/^rs/i, ''));
+  function updateTransferButton() {
+    const amount = transferAmount();
+    $('transferBtn').textContent = amount > 0 ? `Transfer ${money(amount)}` : 'Transfer';
   }
-
-  const post = (path, form, msg) => async (e) => {
+  $('quick').innerHTML = [1000, 5000, 10000].map((n) => `<button class="ft-pill" type="button" data-n="${n}">${money(n)}</button>`).join('');
+  $('quick').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { $('tAmount').value = fmt(b.dataset.n); updateTransferButton(); } });
+  $('tAmount').addEventListener('input', updateTransferButton);
+  $('swapBtn').addEventListener('click', () => { const f = $('from').value; $('from').value = $('to').value; $('to').value = f; });
+  $('transferForm').addEventListener('submit', attempt(async (e) => {
     e.preventDefault();
-    try { await api(path, { method: 'POST', body: Object.fromEntries(new FormData(form)) }); form.reset(); toast(msg); load(); }
-    catch (err) { toast(err.message, 'danger'); }
-  };
-  accountForm.addEventListener('submit', post('/accounts', accountForm, 'Account added'));
-  transferForm.addEventListener('submit', post('/accounts/transfer', transferForm, 'Transfer complete'));
-  categoryForm.addEventListener('submit', post('/categories', categoryForm, 'Category added'));
+    const amount = transferAmount();
+    if (accounts.length < 2) { toast('You need two accounts to make a transfer.', 'danger'); return; }
+    if ($('from').value === $('to').value) { toast('Choose two different accounts.', 'danger'); return; }
+    if (!(amount > 0)) { toast('Enter an amount greater than zero.', 'danger'); $('tAmount').focus(); return; }
+    $('transferBtn').disabled = true;
+    try {
+      await api('/accounts/transfer', { method: 'POST', body: { from_account: Number($('from').value), to_account: Number($('to').value), amount } });
+      toast(`Moved ${money(amount)}`);
+      $('tAmount').value = '';
+      await load(); shell.refresh();
+    } finally { $('transferBtn').disabled = false; updateTransferButton(); }
+  }));
 
-  async function removeAccount(id) {
-    if (!confirm('Delete this account and all its transactions?')) return;
-    try { await api('/accounts/' + id, { method: 'DELETE' }); toast('Account deleted'); load(); } catch (e) { toast(e.message, 'danger'); }
-  }
-  async function removeCategory(id) {
-    try { await api('/categories/' + id, { method: 'DELETE' }); toast('Category deleted'); load(); } catch (e) { toast(e.message, 'danger'); }
-  }
-  load().catch((e) => toast(e.message, 'danger'));
+  // ---------- categories ----------
+  $('categoryForm').addEventListener('submit', attempt(async (e) => {
+    e.preventDefault();
+    const name = $('catName').value.trim();
+    if (!name) { toast('Type a name for the category.', 'danger'); $('catName').focus(); return; }
+    await api('/categories', { method: 'POST', body: { name, type: $('catType').value } });
+    toast('Category added');
+    $('catName').value = '';
+    await load();
+  }));
+  window.deleteCategory = attempt(async (id) => {
+    const name = categories.find((c) => c.category_id === id)?.name || 'this category';
+    const ok = await confirmAction({ title: `Remove "${name}"?`, text: 'You can only remove a category that has no transactions.', confirm: 'Remove' });
+    if (!ok) return;
+    try { await api('/categories/' + id, { method: 'DELETE' }); }
+    catch (e) { toast(`"${name}" has transactions, so it can't be removed. Your history stays correct.`, 'danger'); return; }
+    toast('Category removed');
+    await load();
+  });
+
+  attempt(load)();
 </script>
 </body>
 </html>

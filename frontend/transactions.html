@@ -5,121 +5,279 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="assets/icon.svg">
 <link href="vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
-<link href="vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
-<div id="navbar"></div>
-<main class="container py-4">
-  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
-    <h2 class="mb-0">Transactions</h2>
-    <button class="btn btn-primary" onclick="openForm()"><i class="bi bi-plus-lg me-1"></i>Add transaction</button>
-  </div>
-  <div class="ft-card p-3 mb-3">
-    <div class="row g-2">
-      <div class="col-md-3"><input type="month" id="fMonth" class="form-control"></div>
-      <div class="col-md-2"><select id="fType" class="form-select"><option value="">All types</option><option value="income">Income</option><option value="expense">Expense</option></select></div>
-      <div class="col-md-3"><select id="fCategory" class="form-select"><option value="">All categories</option></select></div>
-      <div class="col-md-4"><input id="fSearch" class="form-control" placeholder="Search description…"></div>
-    </div>
-  </div>
-  <div class="ft-card p-3">
-    <div class="table-responsive">
-      <table class="table align-middle mb-0">
-        <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Account</th><th class="text-end">Amount</th><th></th></tr></thead>
-        <tbody id="rows"></tbody>
-      </table>
-    </div>
-  </div>
-</main>
+<a class="visually-hidden-focusable" href="#content">Skip to content</a>
+<div class="ft-app">
+  <aside class="ft-card ft-side" id="sidebar"></aside>
+  <main class="ft-main" id="content">
+    <header class="ft-top" id="topbar"></header>
+    <div class="ft-grid-4" id="summary"></div>
 
-<div class="modal fade" id="txnModal" tabindex="-1">
-  <div class="modal-dialog"><form class="modal-content" id="txnForm">
-    <div class="modal-header"><h5 class="modal-title" id="formTitle">Add transaction</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body">
-      <input type="hidden" name="txn_id">
-      <div class="btn-group w-100 mb-3" role="group">
-        <input type="radio" class="btn-check" name="kind" id="kExp" value="expense" checked><label class="btn btn-outline-danger" for="kExp">Expense</label>
-        <input type="radio" class="btn-check" name="kind" id="kInc" value="income"><label class="btn btn-outline-success" for="kInc">Income</label>
-      </div>
-      <div class="mb-3"><label class="form-label">Amount (Rs)</label><input type="number" name="amount" min="1" step="0.01" class="form-control" required></div>
-      <div class="row g-2 mb-3">
-        <div class="col"><label class="form-label">Category</label><select name="category_id" class="form-select" required></select></div>
-        <div class="col"><label class="form-label">Account</label><select name="account_id" class="form-select" required></select></div>
-      </div>
-      <div class="mb-3"><label class="form-label">Date</label><input type="date" name="txn_date" class="form-control" required></div>
-      <div class="mb-1"><label class="form-label">Description</label><input name="description" class="form-control" maxlength="255"></div>
+    <div class="ft-row">
+      <section class="ft-card d-flex flex-column gap-3" style="flex:1 1 600px">
+        <div class="ft-filters">
+          <div class="ft-seg" role="group" aria-label="Type" id="typeSeg">
+            <button type="button" data-type="" aria-pressed="true">All</button><button type="button" data-type="income" aria-pressed="false">Income</button><button type="button" data-type="expense" aria-pressed="false">Expense</button>
+          </div>
+          <select class="ft-input" id="fCategory" aria-label="Category"><option value="">All categories</option></select>
+          <select class="ft-input" id="fAccount" aria-label="Account"><option value="">All accounts</option></select>
+          <label class="ft-search"><span data-i="search"></span><input id="fSearch" aria-label="Search description" placeholder="Search description…"></label>
+          <button class="ft-iconbtn" id="csvBtn" type="button" aria-label="Download as CSV" title="Download as CSV"><span data-i="download"></span></button>
+        </div>
+        <div class="table-responsive">
+          <table class="ft-table">
+            <thead><tr><th>Description</th><th>Date</th><th>Account</th><th>Category</th><th style="text-align:right">Amount</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2" style="font-size:13px;color:var(--ft-muted)">
+          <span id="showing"></span>
+          <button class="ft-chip-btn d-none" id="moreBtn" style="min-height:40px;padding:0 14px">Load more</button>
+        </div>
+      </section>
+
+      <div class="ft-panel-backdrop" id="backdrop"></div>
+      <aside class="ft-card ft-panel" id="panel" aria-labelledby="panelTitle">
+        <form id="txnForm" class="d-flex flex-column gap-3" novalidate>
+          <div class="d-flex justify-content-between align-items-center">
+            <h2 class="ft-label" style="font-size:16px" id="panelTitle">Add transaction</h2>
+            <button class="ft-iconbtn" type="button" id="closeBtn" style="width:36px;height:36px" aria-label="Clear the form"><span data-i="x"></span></button>
+          </div>
+          <div class="ft-seg d-flex" role="group" aria-label="Type" id="kindSeg">
+            <button type="button" data-kind="expense" aria-pressed="true">Expense</button><button type="button" data-kind="income" aria-pressed="false">Income</button>
+          </div>
+          <div class="ft-field">
+            <label for="amount">Amount</label>
+            <div class="ft-amount"><span>Rs</span><input id="amount" name="amount" inputmode="decimal" placeholder="0" autocomplete="off" required></div>
+          </div>
+          <div class="ft-field"><span class="lab" id="catLabel">Category</span><div class="ft-catpick" role="group" aria-labelledby="catLabel" id="catPick"></div></div>
+          <div class="row g-2">
+            <div class="col-6 ft-field"><label for="account">Account</label><select id="account" class="ft-input" required></select></div>
+            <div class="col-6 ft-field"><label for="txnDate">Date</label><input id="txnDate" type="date" class="ft-input" required></div>
+          </div>
+          <div class="ft-field"><label for="description">Description</label><input id="description" class="ft-input" maxlength="255" placeholder="e.g. Groceries at Imtiaz"></div>
+          <div class="ft-note" id="afterNote"></div>
+          <button class="ft-btn lg" id="saveBtn">Save transaction</button>
+        </form>
+      </aside>
     </div>
-    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save</button></div>
-  </form></div>
+  </main>
 </div>
+<nav class="ft-tabbar" id="tabbar" aria-label="Main"></nav>
+
 <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/icons.js"></script>
 <script src="js/api.js"></script>
+<script src="js/layout.js"></script>
 <script>
-  auth.requireLogin();
-  renderNavbar('transactions.html');
-  let categories = [], accounts = [], list = [];
-  const modal = new bootstrap.Modal(txnModal);
-  const form = document.getElementById('txnForm');
-  fMonth.value = thisMonth();
-
-  function fillCategories(kind, selected) {
-    form.category_id.innerHTML = categories.filter((c) => c.type === kind)
-      .map((c) => `<option value="${c.category_id}" ${c.category_id == selected ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
-  }
-  form.querySelectorAll('[name=kind]').forEach((r) => r.addEventListener('change', () => fillCategories(r.value)));
-
-  function openForm(t) {
-    form.reset();
-    formTitle.textContent = t ? 'Edit transaction' : 'Add transaction';
-    form.elements.txn_id.value = t?.transaction_id || '';
-    const kind = t?.type || 'expense';
-    form.querySelector(`[name=kind][value=${kind}]`).checked = true;
-    fillCategories(kind, t?.category_id);
-    form.account_id.innerHTML = accounts.map((a) => `<option value="${a.account_id}" ${a.account_id == t?.account_id ? 'selected' : ''}>${esc(a.account_name)}</option>`).join('');
-    form.amount.value = t?.amount || '';
-    form.txn_date.value = (t?.txn_date || new Date().toISOString()).slice(0, 10);
-    form.description.value = t?.description || '';
-    modal.show();
-  }
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const body = Object.fromEntries(new FormData(form));
-    try {
-      if (body.txn_id) await api("/transactions/" + body.txn_id, { method: 'PUT', body });
-      else await api('/transactions', { method: 'POST', body });
-      modal.hide(); toast('Transaction saved'); load();
-    } catch (err) { toast(err.message, 'danger'); }
+  shell.render('transactions.html', {
+    title: 'Transactions', sub: 'Every rupee in and out, in one list',
+    actions: shell.monthPicker('month') + `<button class="ft-btn d-xl-none" type="button" id="addBtn">${icon('plus', 18)}Add</button>`,
   });
+  document.querySelectorAll('[data-i]').forEach((el) => { el.outerHTML = icon(el.dataset.i, 18); });
+  const $ = (id) => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  if (params.get('search')) $('fSearch').value = params.get('search');
 
-  async function remove(id) {
-    if (!confirm('Delete this transaction?')) return;
-    try { await api('/transactions/' + id, { method: 'DELETE' }); toast('Transaction deleted'); load(); }
-    catch (err) { toast(err.message, 'danger'); }
+  let categories = [], accounts = [], list = [], shown = 20;
+  const state = { type: '', editing: null, kind: 'expense', categoryId: null };
+
+  // ---------- list ----------
+  function rowHtml(t, i) {
+    return `<tr>
+      <td><span class="who"><span class="ft-cat ${t.type}">${icon(catIcon(t.category), 20)}</span>
+        <span style="min-width:0"><b>${esc(t.description || t.category)}</b><small>${t.type === 'income' ? 'Income' : 'Expense'}</small></span></span></td>
+      <td style="color:#475569">${dateLabel(t.txn_date)}</td>
+      <td><span class="d-inline-flex align-items-center gap-2" style="color:#334155">${icon(accIcon(accounts.find((a) => a.account_id === t.account_id)?.account_type), 16)}${esc(t.account_name)}</span></td>
+      <td><span class="ft-tag ${t.type}">${esc(t.category)}</span></td>
+      <td style="text-align:right" class="amt-${t.type}">${signed(t)}</td>
+      <td style="text-align:right"><span class="d-inline-flex gap-1">
+        <button class="ft-iconbtn sm" type="button" onclick="edit(${i})" aria-label="Edit ${esc(t.description || t.category)}">${icon('edit', 17)}</button>
+        <button class="ft-iconbtn sm" type="button" onclick="remove(${i})" aria-label="Delete ${esc(t.description || t.category)}">${icon('trash', 17)}</button></span></td></tr>`;
   }
+  function renderRows() {
+    $('rows').innerHTML = list.slice(0, shown).map(rowHtml).join('')
+      || `<tr><td colspan="6" class="ft-empty">No transactions match. ${hasFilters() ? 'Try clearing the filters.' : 'Add your first one with the form.'}</td></tr>`;
+    $('showing').textContent = list.length ? `Showing ${Math.min(shown, list.length)} of ${list.length} transaction${list.length === 1 ? '' : 's'}` : '';
+    $('moreBtn').classList.toggle('d-none', shown >= list.length);
+  }
+  const hasFilters = () => state.type || $('fCategory').value || $('fAccount').value || $('fSearch').value.trim();
 
   async function load() {
-    const q = new URLSearchParams({ month: fMonth.value, type: fType.value, category_id: fCategory.value, search: fSearch.value });
+    const month = $('month').value;
+    const q = new URLSearchParams({ month, type: state.type, category_id: $('fCategory').value, account_id: $('fAccount').value, search: $('fSearch').value.trim() });
     [...q.keys()].forEach((k) => !q.get(k) && q.delete(k));
-    list = await api('/transactions?' + q);
-    rows.innerHTML = list.map((t, i) => `<tr>
-      <td>${esc(t.txn_date.slice(0, 10))}</td><td>${esc(t.description || '')}</td>
-      <td><span class="badge text-bg-light">${esc(t.category)}</span></td><td class="text-muted-ft">${esc(t.account_name)}</td>
-      <td class="text-end amount-${t.type}">${t.type === 'income' ? '+' : '−'}${money(t.amount)}</td>
-      <td class="text-end text-nowrap"><button class="btn btn-sm btn-light" onclick="openForm(list[${i}])"><i class="bi bi-pencil"></i></button>
-      <button class="btn btn-sm btn-light text-danger" onclick="remove(${t.transaction_id})"><i class="bi bi-trash"></i></button></td></tr>`).join('')
-      || '<tr><td colspan="6" class="empty">No transactions found.</td></tr>';
+    const [filtered, all] = await Promise.all([api('/transactions?' + q), hasFilters() ? api('/transactions?month=' + month) : null]);
+    list = filtered;
+    shown = 20;
+    renderRows();
+    renderSummary(all || filtered, month);
   }
 
-  (async () => {
+  function renderSummary(all, month) {
+    const inc = all.filter((t) => t.type === 'income'), exp = all.filter((t) => t.type === 'expense');
+    const sum = (a) => a.reduce((s, t) => s + Number(t.amount), 0);
+    const income = sum(inc), expense = sum(exp), net = income - expense;
+    const cards = [
+      ['Income', money(income), 'up', 'var(--ft-green)', `${inc.length} entr${inc.length === 1 ? 'y' : 'ies'}`],
+      ['Expense', money(expense), 'down', 'var(--ft-text)', `${exp.length} entr${exp.length === 1 ? 'y' : 'ies'}`],
+      ['Net saving', (net < 0 ? '−' : '') + money(Math.abs(net)), 'wallet', 'var(--ft-text)', income ? `${pct(net, income)}% of income` : 'No income yet'],
+      ['Transactions', fmt(all.length), 'swap', 'var(--ft-text)', monthName(month)],
+    ];
+    $('summary').innerHTML = cards.map(([t, v, i, c, n]) => `<div class="ft-card ft-stat">
+      <div class="d-flex align-items-center justify-content-between"><p class="t">${t}</p><span style="color:${c}">${icon(i, 18)}</span></div>
+      <p class="ft-big" style="font-size:28px">${v}</p><p class="ft-muted">${n}</p></div>`).join('');
+  }
+
+  // ---------- add / edit panel ----------
+  function fillCategories() {
+    const options = categories.filter((c) => c.type === state.kind);
+    if (!options.some((c) => c.category_id === state.categoryId)) state.categoryId = options[0]?.category_id ?? null;
+    $('catPick').innerHTML = options.map((c) => `<button type="button" data-id="${c.category_id}" aria-pressed="${c.category_id === state.categoryId}">${icon(catIcon(c.name), 16)}${esc(c.name)}</button>`).join('')
+      || `<span class="ft-muted">No ${state.kind} categories yet. <a href="accounts.html">Add one</a></span>`;
+  }
+  function setKind(kind) {
+    state.kind = kind;
+    $('kindSeg').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.kind === kind));
+    fillCategories();
+    updateNote();
+  }
+  const amountValue = () => Number(String($('amount').value).replace(/[,\s]/g, ''));
+
+  /** "Cash balance after this: Rs 5,800", counting an edit's old amount back first. */
+  function updateNote() {
+    const acc = accounts.find((a) => a.account_id === Number($('account').value));
+    if (!acc) { $('afterNote').innerHTML = `${icon('wallet', 18)}Add an account first on the Accounts page.`; return; }
+    let balance = Number(acc.balance);
+    const old = state.editing;
+    if (old && old.account_id === acc.account_id) balance += old.type === 'income' ? -Number(old.amount) : Number(old.amount);
+    const amount = amountValue() || 0;
+    const after = balance + (state.kind === 'income' ? amount : -amount);
+    $('afterNote').classList.toggle('bad', after < 0);
+    $('afterNote').innerHTML = `${icon('wallet', 18)}${esc(acc.account_name)} balance after this: <b>${after < 0 ? '−' : ''}${money(Math.abs(after))}</b>`;
+  }
+
+  function openPanel(t = null) {
+    state.editing = t;
+    $('panelTitle').textContent = t ? 'Edit transaction' : 'Add transaction';
+    $('saveBtn').textContent = t ? 'Save changes' : 'Save transaction';
+    $('closeBtn').setAttribute('aria-label', t ? 'Stop editing' : 'Clear the form');
+    $('amount').value = t ? fmt(t.amount, Number(t.amount) % 1 ? 2 : 0) : '';
+    $('description').value = t?.description || '';
+    $('txnDate').value = t ? t.txn_date.slice(0, 10) : ($('month').value === thisMonth() ? today() : $('month').value + '-01');
+    if (t) $('account').value = t.account_id;
+    state.categoryId = t?.category_id ?? state.categoryId;
+    setKind(t?.type || state.kind);
+    $('panel').classList.add('open');
+    $('backdrop').classList.add('open');
+    setTimeout(() => $('amount').focus(), 50);
+  }
+  function closePanel() {
+    $('panel').classList.remove('open');
+    $('backdrop').classList.remove('open');
+    state.editing = null;
+    $('txnForm').reset();
+    openPanelQuiet();
+  }
+  /** Resets the form to "add" without opening it on small screens. */
+  function openPanelQuiet() {
+    state.editing = null;
+    $('panelTitle').textContent = 'Add transaction';
+    $('saveBtn').textContent = 'Save transaction';
+    $('txnDate').value = $('month').value === thisMonth() ? today() : $('month').value + '-01';
+    setKind(state.kind);
+  }
+
+  window.edit = (i) => openPanel(list[i]);
+  window.remove = attempt(async (i) => {
+    const t = list[i];
+    const ok = await confirmAction({ title: 'Delete this transaction?', text: `"${t.description || t.category}", ${signed(t)} on ${dateLabel(t.txn_date)}. The account balance will be corrected automatically.` });
+    if (!ok) return;
+    await api('/transactions/' + t.transaction_id, { method: 'DELETE' });
+    toast('Transaction deleted');
+    if (state.editing?.transaction_id === t.transaction_id) closePanel();
+    await refreshAll();
+  });
+
+  $('txnForm').addEventListener('submit', attempt(async (e) => {
+    e.preventDefault();
+    const amount = amountValue();
+    if (!amount || amount <= 0) { toast('Enter an amount greater than zero.', 'danger'); $('amount').focus(); return; }
+    if (!state.categoryId) { toast('Choose a category.', 'danger'); return; }
+    if (!$('txnDate').value) { toast('Choose a date.', 'danger'); return; }
+    const body = { account_id: Number($('account').value), category_id: state.categoryId, amount, txn_date: $('txnDate').value, description: $('description').value.trim() };
+    $('saveBtn').disabled = true;
+    try {
+      if (state.editing) await api('/transactions/' + state.editing.transaction_id, { method: 'PUT', body });
+      else await api('/transactions', { method: 'POST', body });
+      toast(state.editing ? 'Transaction updated' : 'Transaction saved');
+      const keepKind = state.kind;
+      closePanel();
+      setKind(keepKind);
+      await refreshAll();
+    } finally { $('saveBtn').disabled = false; }
+  }));
+
+  async function refreshAll() {
+    accounts = await api('/accounts');
+    const selected = $('account').value;
+    $('account').innerHTML = accounts.map((a) => `<option value="${a.account_id}">${esc(a.account_name)}</option>`).join('');
+    if (selected) $('account').value = selected;
+    updateNote();
+    await load();
+    shell.refresh();
+  }
+
+  function downloadCsv() {
+    if (!list.length) { toast('Nothing to download for these filters.', 'warning'); return; }
+    const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [['Date', 'Description', 'Type', 'Category', 'Account', 'Amount'].join(',')]
+      .concat(list.map((t) => [t.txn_date.slice(0, 10), t.description, t.type, t.category, t.account_name, (t.type === 'income' ? '' : '-') + t.amount].map(cell).join(',')));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([lines.join('\r\n')], { type: 'text/csv' }));
+    a.download = `fintrack-transactions-${$('month').value}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ---------- events ----------
+  $('typeSeg').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.type = b.dataset.type;
+    $('typeSeg').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+    attempt(load)();
+  });
+  $('kindSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setKind(b.dataset.kind); });
+  $('catPick').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.categoryId = Number(b.dataset.id);
+    $('catPick').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+  });
+  ['fCategory', 'fAccount', 'month'].forEach((id) => $(id).addEventListener('change', attempt(load)));
+  $('month').addEventListener('change', () => { if (!state.editing) openPanelQuiet(); });
+  $('fSearch').addEventListener('input', () => { clearTimeout(window.searchTimer); window.searchTimer = setTimeout(attempt(load), 300); });
+  $('amount').addEventListener('input', updateNote);
+  $('account').addEventListener('change', updateNote);
+  $('moreBtn').addEventListener('click', () => { shown += 20; renderRows(); });
+  $('csvBtn').addEventListener('click', downloadCsv);
+  $('closeBtn').addEventListener('click', closePanel);
+  $('backdrop').addEventListener('click', closePanel);
+  $('addBtn').addEventListener('click', () => openPanel());
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('panel').classList.contains('open')) closePanel(); });
+
+  (attempt(async () => {
     [categories, accounts] = await Promise.all([api('/categories'), api('/accounts')]);
-    fCategory.innerHTML += categories.map((c) => `<option value="${c.category_id}">${esc(c.name)} (${c.type})</option>`).join('');
-    [fMonth, fType, fCategory].forEach((el) => el.addEventListener('change', load));
-    fSearch.addEventListener('input', () => { clearTimeout(window._t); window._t = setTimeout(load, 300); });
-    load();
-  })().catch((e) => toast(e.message, 'danger'));
+    $('fCategory').innerHTML += categories.map((c) => `<option value="${c.category_id}">${esc(c.name)}</option>`).join('');
+    $('fAccount').innerHTML += accounts.map((a) => `<option value="${a.account_id}">${esc(a.account_name)}</option>`).join('');
+    $('account').innerHTML = accounts.map((a) => `<option value="${a.account_id}">${esc(a.account_name)}</option>`).join('');
+    openPanelQuiet();
+    await load();
+    if (location.hash === '#add') { openPanel(); history.replaceState(null, '', location.pathname + location.search); }
+  }))();
 </script>
 </body>
 </html>
