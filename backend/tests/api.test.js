@@ -1,10 +1,9 @@
-// API tests: every route, plus privacy checks where a second user tries to reach the first user's data.
+// API tests: every route of the PHP backend, tested over HTTP, plus privacy checks where a second
+// user tries to reach the first user's data. The tests start `php -S … router.php` themselves.
 // Rules: AUTH-01 – AUTH-04, SEC-01, SEC-02, DB-09, DB-10, ACC-01, ACC-04, TXN-01, TXN-02, BUD-01, BUD-03, GOAL-01, GOAL-02, RPT-01.
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
-const { resetDatabase } = require('./setup');
-const app = require('../src/app');
-const db = require('../src/db');
+const { resetDatabase, adminQuery, startPhpServer } = require('./setup');
 
 let server;
 let baseUrl;
@@ -34,13 +33,12 @@ async function newUser(name) {
 
 before(async () => {
   await resetDatabase();
-  server = app.listen(0);
-  baseUrl = `http://127.0.0.1:${server.address().port}`;
+  server = await startPhpServer();
+  baseUrl = server.baseUrl;
 });
 
-after(async () => {
-  if (server) server.close();
-  await db.pool.end();
+after(() => {
+  if (server) server.stop();
 });
 
 describe('sign-up and log-in', () => {
@@ -70,7 +68,7 @@ describe('sign-up and log-in', () => {
 
   test('AUTH-03 passwords are stored only as bcrypt hashes', async () => {
     const u = await newUser('Hash Check');
-    const { rows } = await db.query('SELECT password_hash FROM users WHERE email = $1', [u.email]);
+    const { rows } = await adminQuery('SELECT password_hash FROM users WHERE email = $1', [u.email]);
     assert.match(rows[0].password_hash, /^\$2[aby]\$10\$/);
     assert.ok(!rows[0].password_hash.includes('secret123'));
   });
@@ -311,9 +309,10 @@ describe('privacy: a user can never reach another user\'s data', () => {
 
 describe('activity log and database role', () => {
   test('DB-10 the API connects to the database as fintrack_app, never as an admin', async () => {
-    const { rows } = await db.query('SELECT current_user AS who, rolsuper FROM pg_roles WHERE rolname = current_user');
-    assert.strictEqual(rows[0].who, 'fintrack_app',
+    const health = await call('GET', '/api/health');
+    assert.strictEqual(health.body.database_role, 'fintrack_app',
       'set PGUSER=fintrack_app and PGPASSWORD=fintrack_app_local in backend/.env (and run database/06_roles.sql)');
+    const { rows } = await adminQuery('SELECT rolsuper FROM pg_roles WHERE rolname = $1', [health.body.database_role]);
     assert.strictEqual(rows[0].rolsuper, false);
   });
 
