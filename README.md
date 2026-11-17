@@ -10,8 +10,7 @@
 <p align="center">
   <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-336791?logo=postgresql&logoColor=white">
   <img alt="pgAdmin 4" src="https://img.shields.io/badge/pgAdmin_4-2F6FD6">
-  <img alt="Node.js" src="https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white">
-  <img alt="Express" src="https://img.shields.io/badge/Express-1C2B44?logo=express&logoColor=white">
+  <img alt="PHP" src="https://img.shields.io/badge/PHP_8-777BB4?logo=php&logoColor=white">
   <img alt="Bootstrap 5" src="https://img.shields.io/badge/Bootstrap_5-7952B3?logo=bootstrap&logoColor=white">
   <img alt="Chart.js" src="https://img.shields.io/badge/Chart.js-FF6384?logo=chartdotjs&logoColor=white">
   <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-3CCB8E">
@@ -74,13 +73,13 @@ See [`database/`](database) for the SQL scripts and some queries to try.
 | Query language | SQL and PL/pgSQL |
 | Front end | HTML5, CSS3, JavaScript, Bootstrap 5, Bootstrap Icons |
 | Charts | Chart.js |
-| Back end | Node.js + Express, `pg` driver, JWT login, bcrypt |
+| Back end | PHP 8 with PDO (`pdo_pgsql`), JWT login, bcrypt (`password_hash`) |
 
-A web browser cannot connect to PostgreSQL directly, so a small Express server sits between the website and the
+A web browser cannot connect to PostgreSQL directly, so a small PHP API sits between the website and the
 database. This keeps the whole project in one language (JavaScript) and keeps the database password off the browser.
 
 ```
-Browser (HTML/CSS/JS + Bootstrap)  ──►  Node.js + Express API  ──►  PostgreSQL (pgAdmin 4)
+Browser (HTML/CSS/JS + Bootstrap)  ──►  PHP 8 + PDO API  ──►  PostgreSQL (pgAdmin 4)
 ```
 
 ## Project structure
@@ -95,15 +94,16 @@ FinTrack/
 │   ├── 05_audit.sql           audit log table and trigger
 │   ├── 06_roles.sql           fintrack_app and fintrack_report roles
 │   └── tests/                 database tests (run in pgAdmin or with npm test)
-├── backend/               Express REST API
+├── backend/               PHP REST API
 │   ├── .env.example           copy to .env and fill in
-│   ├── tests/                 API tests (npm test)
+│   ├── router.php             entry point for `php -S` (sends /api/… to the API, serves the website)
+│   ├── tests/                 API tests (npm test; they start the PHP server themselves)
 │   └── src/
-│       ├── server.js          starts the app
-│       ├── app.js             routes, website files and error handling
-│       ├── db.js              PostgreSQL connection pool
-│       ├── middleware/auth.js JWT login check
-│       └── routes/            auth, accounts, categories, transactions, budgets, goals, reports
+│       ├── app.php            route table, login check and error messages
+│       ├── db.php             PDO connection and "run as this user" helpers (audit log)
+│       ├── jwt.php            login tokens (HS256)
+│       ├── env.php, http.php  settings from .env, JSON in and out
+│       └── routes/            auth, accounts, categories, transactions, budgets, goals, reports, activity
 ├── frontend/              the website
 │   ├── index.html             log in / register
 │   ├── dashboard.html         stats, charts, budget warnings
@@ -121,7 +121,8 @@ FinTrack/
 ### 1. Requirements
 
 - [PostgreSQL](https://www.postgresql.org/download/) with **pgAdmin 4**
-- [Node.js](https://nodejs.org/) 18 or newer
+- **PHP 8.1 or newer** with the `pdo_pgsql` extension: on Windows install [XAMPP](https://www.apachefriends.org/) or the zip from [windows.php.net](https://windows.php.net/download/), then in `php.ini` remove the `;` in front of `extension=pdo_pgsql` and `extension=pgsql`. Check with `php -m` (the list must include `pdo_pgsql`).
+- [Node.js](https://nodejs.org/) 18 or newer, only for running the tests
 
 ### 2. Create the database in pgAdmin 4
 
@@ -141,27 +142,27 @@ for f in database/0*.sql; do psql -U postgres -d fintrack -f "$f"; done
 ```bash
 cd backend
 cp .env.example .env        # then set PGADMIN_PASSWORD (your postgres password) and JWT_SECRET
-npm install
-npm start
+php -S localhost:3000 -t ../frontend router.php
 ```
 
 Open **http://localhost:3000** in your browser.
 
 **Demo login** (from the sample data): `demo@fintrack.pk` / `demo1234`
 
-**If it says "Database password not set":** the server or tests could not read `backend/.env`. On Windows, Notepad often saves it as `.env.txt`; rename it with `Rename-Item .env.txt .env`, and make sure it has a `PGPASSWORD=` line. If PostgreSQL is installed in a different folder or port, set `PGPORT` to match (check with `Get-Service *postgres*` and the `port =` line in `postgresql.conf`).
+**If it says "Database password not set":** the PHP server or tests could not read `backend/.env`. On Windows, Notepad often saves it as `.env.txt`; rename it with `Rename-Item .env.txt .env`, and make sure it has a `PGPASSWORD=` line. If PostgreSQL is installed in a different folder or port, set `PGPORT` to match (check with `Get-Service *postgres*` and the `port =` line in `postgresql.conf`).
 
 ## Running the tests
 
 ```bash
 cd backend
+npm install                 # once: the test tools
 npm test
 ```
 
 This rebuilds a separate database called `fintrack_test` from the scripts in `database/` (your real `fintrack` database is never touched), then runs:
 
 - **Database tests** (`database/tests/*.sql`): constraints, triggers, views, `check_budget()` and `transfer_money()`. You can also open any of these files in pgAdmin's Query Tool and run them; each passing check prints `PASS <rule>` and nothing is changed.
-- **API tests** (`backend/tests/api.test.js`): every route, including privacy checks where a second user tries to read or change the first user's data.
+- **API tests** (`backend/tests/api.test.js`): the tests start the PHP server on a free port and call every route over HTTP, including privacy checks where a second user tries to read or change the first user's data.
 
 The same tests run automatically on GitHub for every pull request (see the **Actions** tab).
 
@@ -205,7 +206,7 @@ All routes except `/api/auth/*` need the header `Authorization: Bearer <token>`.
 | Create database and tables in pgAdmin 4 | 🟦 | 🟦 | | | | |
 | Triggers, views, functions and indexes | | 🟦 | 🟦 | | | |
 | Front-end pages (HTML, CSS, Bootstrap) | | 🟦 | 🟦 | 🟦 | | |
-| Back end (Node.js/Express) and database connection | | | 🟦 | 🟦 | 🟦 | |
+| Back end (PHP + PDO) and database connection | | | 🟦 | 🟦 | 🟦 | |
 | Testing and bug fixing | | | | | 🟦 | 🟦 |
 | Final report and presentation | | | | | | 🟦 |
 

@@ -6,8 +6,10 @@
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env'), quiet: true });
+const { spawn } = require('child_process');
+const net = require('net');
 const { Client } = require('pg');
-const { checkDatabaseSettings } = require('../src/check-env');
+const { checkDatabaseSettings } = require('./check-env');
 
 checkDatabaseSettings({ admin: true });
 
@@ -79,4 +81,56 @@ async function runSqlFile(file) {
   }
 }
 
-module.exports = { resetDatabase, runSqlFile, DATABASE_DIR };
+/** Runs one SQL statement as the admin user (for checks the API doesn't expose). */
+async function adminQuery(text, params) {
+  const client = new Client(connection(process.env.PGDATABASE));
+  await client.connect();
+  try {
+    return await client.query(text, params);
+  }
+  finally {
+    await client.end();
+  }
+}
+
+/** Finds a free TCP port. */
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address();
+      server.close(() => resolve(port));
+    });
+    server.on('error', reject);
+  });
+}
+
+/**
+ * Starts the PHP backend (php -S … router.php) on a free port, connected to the test database,
+ * and waits until /api/health answers. Returns { baseUrl, stop }.
+ */
+async function startPhpServer() {
+  const port = await freePort();
+  const backendDir = path.join(__dirname, '..');
+  const php = spawn(process.env.PHP_BINARY || 'php',
+    ['-S', `127.0.0.1:${port}`, '-t', path.join(backendDir, '..', 'frontend'), path.join(backendDir, 'router.php')],
+    { cwd: backendDir, env: process.env, stdio: ['ignore', 'ignore', 'pipe'] });
+  let log = '';
+  php.stderr.on('data', (chunk) => { log += chunk; });
+  const baseUrl = `http://127.0.0.1:${port}`;
+  for (let i = 0; i < 100; i++) {
+    try {
+      const res = await fetch(`${baseUrl}/api/health`);
+      if (res.ok) return { baseUrl, stop: () => php.kill(), log: () => log };
+    }
+    catch {
+      // not listening yet
+    }
+    if (php.exitCode !== null) break;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  php.kill();
+  throw new Error(`The PHP server did not start. Is PHP installed with pdo_pgsql? Output:\n${log}`);
+}
+
+module.exports = { resetDatabase, runSqlFile, adminQuery, startPhpServer, DATABASE_DIR };

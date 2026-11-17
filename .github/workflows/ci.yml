@@ -1,5 +1,6 @@
 # Runs on every push and pull request to main and dev:
-# builds a fresh PostgreSQL database from database/*.sql, runs the database tests and the API tests.
+# builds a fresh PostgreSQL database from database/*.sql, runs the database tests, then starts the
+# PHP backend and runs the API tests against it.
 # A red build is never merged (planning rule: plan.md section 11.2).
 name: CI
 
@@ -45,6 +46,13 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql
+          coverage: none
+      - name: PHP syntax check
+        run: for f in router.php $(find src -name '*.php'); do php -l "$f"; done
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -58,7 +66,7 @@ jobs:
         run: |
           createdb fintrack_seed_check
           for f in ../database/0*.sql; do psql -v ON_ERROR_STOP=1 -q -d fintrack_seed_check -f "$f"; done
-      - name: Database and API tests
+      - name: Database tests, and API tests against the PHP server
         run: npm test
-      - name: Security audit of dependencies
-        run: npm audit --omit=dev --audit-level=high
+      - name: Security audit of the test tools
+        run: npm audit --audit-level=high
