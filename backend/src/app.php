@@ -49,6 +49,7 @@ function routes(): array
         ['PATCH', '/api/goals/{id}/add', 'goals_add', true],
         ['DELETE', '/api/goals/{id}', 'goals_delete', true],
         ['GET', '/api/reports/dashboard', 'reports_dashboard', true],
+        ['GET', '/api/reports/year', 'reports_year', true],
         ['GET', '/api/activity', 'activity_list', true],
     ];
 }

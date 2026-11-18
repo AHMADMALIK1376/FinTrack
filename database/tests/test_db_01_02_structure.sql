@@ -41,7 +41,7 @@ BEGIN
     RAISE NOTICE 'PASS DB-02 foreign keys and ON DELETE rules';
 
     ASSERT (SELECT COUNT(*) FROM pg_indexes
-            WHERE indexname IN ('idx_txn_account_date', 'idx_txn_category', 'idx_accounts_user', 'idx_categories_user')) = 4,
+            WHERE indexname IN ('idx_txn_account_date', 'idx_txn_category_date', 'idx_accounts_user', 'idx_categories_user')) = 4,
            'DB-07 report indexes are missing';
     RAISE NOTICE 'PASS DB-07 report indexes exist';
 END

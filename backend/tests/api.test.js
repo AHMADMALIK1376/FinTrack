@@ -456,6 +456,36 @@ describe('paging and recurring transactions (TXN-05, TXN-07)', () => {
   });
 });
 
+describe('year report (RPT-02, DB-12)', () => {
+  test('RPT-02 the year report has every month and category, leaves out transfers, and hides small groups', async () => {
+    const u = await newUser('year-report');
+    const y = new Date().getFullYear();
+    const bank = (await call('POST', '/api/accounts', { token: u.token, body: { account_name: 'Bank', account_type: 'bank' } })).body.account_id;
+    for (const [cat, amount, date] of [['Salary', 100000, `${y}-01-15`], ['Food', 8000, `${y}-01-20`], ['Food', 2000, `${y}-01-25`], ['Rent', 30000, `${y}-02-01`]]) {
+      const res = await call('POST', '/api/transactions', { token: u.token, body: { account_id: bank, category_id: u.cat(cat), amount, txn_date: date } });
+      assert.strictEqual(res.status, 201, JSON.stringify(res.body));
+    }
+    await call('POST', '/api/accounts/transfer', { token: u.token, body: { from_account: bank, to_account: u.cash, amount: 5000 } });
+
+    const r = await call('GET', `/api/reports/year?year=${y}`, { token: u.token });
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+    assert.strictEqual(r.body.year, y);
+    assert.ok(r.body.years.includes(y));
+    const cell = (name, month) => r.body.cells.find((c) => c.category === name && c.month === month);
+    assert.strictEqual(Number(cell('Food', 1).total), 10000);
+    assert.strictEqual(cell('Food', 1).entries, 2);
+    assert.strictEqual(Number(cell('Rent', 2).total), 30000);
+    assert.ok(!r.body.cells.some((c) => c.category === 'Transfer'), 'transfers are not income or spending');
+    assert.ok(r.body.averages_updated_at, 'the materialized view was refreshed (or is fresh)');
+    assert.ok(r.body.averages.every((a) => a.fewest_users >= r.body.min_users_for_average), 'groups under 5 people are hidden');
+
+    const other = await newUser('year-report-other');
+    const theirs = await call('GET', `/api/reports/year?year=${y}`, { token: other.token });
+    assert.strictEqual(theirs.body.cells.length, 0, 'SEC-01 another user sees none of these');
+    assert.strictEqual((await call('GET', '/api/reports/year?year=1999', { token: u.token })).status, 400);
+  });
+});
+
 describe('too many wrong passwords (SEC-05)', () => {
   const email = 'locked@test.pk';
   before(async () => {

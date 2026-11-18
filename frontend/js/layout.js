@@ -6,6 +6,7 @@ const NAV = [
   { href: 'transactions.html', label: 'Transactions', icon: 'swap' },
   { href: 'accounts.html', label: 'Accounts', icon: 'wallet', count: 'accounts' },
   { href: 'budgets.html', label: 'Budgets & goals', icon: 'pie', count: 'warnings' },
+  { href: 'reports.html', label: 'Reports', icon: 'chart' },
 ];
 
 const shell = {
@@ -63,6 +64,7 @@ const shell = {
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li><a class="dropdown-item" href="accounts.html">${icon('wallet', 18)}My accounts</a></li>
+            <li><a class="dropdown-item" href="reports.html">${icon('chart', 18)}Reports</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><button class="dropdown-item" type="button" onclick="auth.logout()">${icon('logout', 18)}Log out</button></li>
           </ul>

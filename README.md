@@ -37,7 +37,7 @@ database itself** (keys, constraints, triggers, views, functions and transaction
 | 🏷️ **Categories** | Income and expense types such as Salary, Food, Rent and Bills. New users get a starter set. |
 | 💸 **Transactions** | Add, edit, delete, search and filter income and expenses by month, type and category. |
 | 🎯 **Budgets & goals** | Monthly spending limit per category, with progress bars, plus savings goals with a target and deadline. |
-| 📊 **Dashboard & reports** | Total balance, this month's income and expense, a 6-month money-flow chart, budget usage, savings goals and budget warnings from Shan, our snow-leopard mascot. |
+| 📊 **Dashboard & reports** | Total balance, this month's income and expense, a 6-month money-flow chart, budget usage, savings goals and budget warnings from Shan, our snow-leopard mascot. A **Reports** page shows the whole year by month and by category, compares each category with the average FinTrack user, and prints on two pages. |
 
 ## Database design
 
@@ -94,6 +94,9 @@ FinTrack/
 │   ├── 07_types.sql           money_pkr domain, account_kind and category_kind enums
 │   ├── 08_login_attempts.sql  refuse a computer after 5 wrong passwords in 10 minutes
 │   ├── 09_recurring.sql       recurring transactions and post_due_recurring()
+│   ├── 10_reports.sql         materialized view of FinTrack-wide averages + refresh_reports()
+│   ├── 11_indexes.sql         index from the performance study
+│   ├── perf/                  100,000+ row performance test (generate.sql, explain.sql)
 │   ├── demo/                  two-window pgAdmin demo: transfers at the same moment
 │   └── tests/                 database tests (run in pgAdmin or with npm test)
 ├── backend/               PHP REST API
@@ -109,6 +112,7 @@ FinTrack/
 ├── frontend/              the website
 │   ├── index.html             log in / register
 │   ├── dashboard.html         balance, income, expense, money flow, budget usage, goals
+│   ├── reports.html           the year by month and category, printable
 │   ├── transactions.html      list, filter, add, edit, delete
 │   ├── accounts.html          accounts, transfers, categories
 │   ├── budgets.html           budgets and savings goals
@@ -132,9 +136,9 @@ FinTrack/
 
 1. Open pgAdmin 4, right-click **Databases → Create → Database…** and name it `fintrack`.
 2. Select `fintrack`, open **Tools → Query Tool**.
-3. Open and run (F5) each file from the `database/` folder **in order**: `01_schema.sql`, `02_triggers.sql`, `03_views_functions.sql`, `04_seed.sql` (sample data), `05_audit.sql` (audit log), `06_roles.sql` (the `fintrack_app` and `fintrack_report` roles), `07_types.sql` (FinTrack's own data types), `08_login_attempts.sql` (log-in limit) and `09_recurring.sql` (recurring transactions).
+3. Open and run (F5) each file from the `database/` folder **in order**: `01_schema.sql`, `02_triggers.sql`, `03_views_functions.sql`, `04_seed.sql` (sample data), `05_audit.sql` (audit log), `06_roles.sql` (the `fintrack_app` and `fintrack_report` roles), `07_types.sql` (FinTrack's own data types), `08_login_attempts.sql` (log-in limit), `09_recurring.sql` (recurring transactions), `10_reports.sql` (report averages) and `11_indexes.sql`.
 
-**Already have a `fintrack` database from an earlier step?** Run just the new files: `03_views_functions.sql` (the transfer now locks rows), then `07_types.sql`, `08_login_attempts.sql` and `09_recurring.sql`. Your data stays.
+**Already have a `fintrack` database from an earlier step?** Run just the files you don't have yet, in order. Since step 5: `03_views_functions.sql` (faster `check_budget()`), `10_reports.sql` and `11_indexes.sql`. Your data stays.
 
 Or from a terminal:
 
@@ -179,6 +183,10 @@ This rebuilds a separate database called `fintrack_test` from the scripts in `da
 
 The same tests run automatically on GitHub for every pull request (see the **Actions** tab).
 
+## Performance
+
+With 285,000 generated transactions, the indexes make every page's queries 87 – 650 × faster (0.07 – 0.4 ms instead of 17 – 64 ms), and the FinTrack-wide averages come from a materialized view in 0.05 ms instead of 197 ms. The full study, with query plans and how to repeat it, is in **[docs/performance.md](docs/performance.md)**.
+
 ## API reference
 
 All routes except `/api/auth/*` need the header `Authorization: Bearer <token>`.
@@ -203,6 +211,7 @@ All routes except `/api/auth/*` need the header `Authorization: Bearer <token>`.
 | PATCH | `/api/goals/:id/add` | Add savings to a goal `{ amount }` |
 | DELETE | `/api/goals/:id` | Delete a goal |
 | GET | `/api/reports/dashboard?month=` | Totals, charts data and budget warnings |
+| GET | `/api/reports/year?year=2026` | The year by month and by category, and the FinTrack average per category |
 | GET | `/api/activity?limit=20` | The user's audit log as plain sentences, newest first |
 
 ## Screenshots
@@ -212,6 +221,8 @@ All routes except `/api/auth/*` need the header `Authorization: Bearer <token>`.
 | ![Login](docs/screenshots/login.png) | ![Transactions](docs/screenshots/transactions.png) |
 | **Accounts** | **Budgets & goals** |
 | ![Accounts](docs/screenshots/accounts.png) | ![Budgets](docs/screenshots/budgets.png) |
+| **Reports** | |
+| ![Reports](docs/screenshots/reports.png) | |
 
 On a phone the sidebar becomes a bottom tab bar with a big "+" for adding a transaction:
 

@@ -13,6 +13,9 @@ Run these in order in **pgAdmin 4 → Query Tool**, connected to a database name
 | `07_types.sql` | Object-relational types: DOMAIN `money_pkr` for every money column, ENUMs `account_kind` and `category_kind`. Changes the columns of an existing database, keeping its data, views and grants |
 | `08_login_attempts.sql` | `login_attempts` table, `login_wait_seconds()` and `record_failed_login()`: 5 wrong passwords in 10 minutes from one computer means waiting 10 minutes |
 | `09_recurring.sql` | Recurring transactions: ENUM `recurrence_kind`, table `recurring_transactions`, `transactions.recurring_id`, and `post_due_recurring()`, which posts every due date (month-end safe, catches up missed dates, `FOR UPDATE SKIP LOCKED`) |
+| `10_reports.sql` | Materialized view `report_monthly_averages` (average per user, per month and category, over all users) and `refresh_reports(max_age)`, which rebuilds it with `REFRESH … CONCURRENTLY` |
+| `11_indexes.sql` | Replaces `idx_txn_category` with `idx_txn_category_date (category_id, txn_date) INCLUDE (amount)`, chosen from the performance study |
+| `perf/generate.sql`, `perf/explain.sql` | The performance study: 285,000 fake transactions in a separate `fintrack_perf` database, and `EXPLAIN ANALYZE` of the website's queries with and without the indexes. Results: `docs/performance.md` |
 | `demo/two_sessions_transfer.sql` | Class demo in two pgAdmin windows: two transfers at the same moment, first without a row lock (the account goes below zero), then with `transfer_money()` (the second one waits and is refused) |
 
 `01_schema.sql` drops and recreates the tables, so running it again resets the database.
@@ -57,4 +60,9 @@ SELECT COALESCE(login_wait_seconds('127.0.0.1'), 0);
 SELECT description, frequency, next_run_date, is_active FROM recurring_transactions;
 SELECT post_due_recurring();          -- returns how many transactions were added
 SELECT recurring_date('2026-01-31', 'monthly', 1);   -- 2026-02-28: month ends never drift
+
+-- FinTrack-wide averages (a materialized view: a stored snapshot), and rebuilding it
+SELECT * FROM report_monthly_averages WHERE month = DATE_TRUNC('month', CURRENT_DATE) ORDER BY total DESC;
+SELECT refresh_reports();             -- rebuild now; refresh_reports('1 day') only if older than a day
+SELECT * FROM report_refreshes ORDER BY refresh_id DESC LIMIT 3;
 ```

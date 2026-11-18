@@ -27,21 +27,29 @@ JOIN categories c ON c.category_id = t.category_id
 WHERE c.type = 'expense'
 GROUP BY c.user_id, c.category_id, c.name, DATE_TRUNC('month', t.txn_date);
 
--- Budgets that are over the limit for a user in a given month
+-- Budgets that are over the limit for a user in a given month (BUD-03).
+-- Adds up only this user's budget categories for that one month (a date range, so the
+-- index idx_txn_category_date is used). An earlier version joined category_spending, which
+-- PostgreSQL computed for every user first: 146 ms instead of 1 ms on 285,000 transactions
+-- (docs/performance.md).
 CREATE OR REPLACE FUNCTION check_budget(p_user_id INT, p_month DATE)
 RETURNS TABLE (category TEXT, limit_amount NUMERIC, spent NUMERIC, over_by NUMERIC) AS $$
     SELECT c.name::TEXT,
            b.limit_amount,
-           COALESCE(cs.total_spent, 0),
-           COALESCE(cs.total_spent, 0) - b.limit_amount
+           s.spent,
+           s.spent - b.limit_amount
     FROM budgets b
     JOIN categories c ON c.category_id = b.category_id
-    LEFT JOIN category_spending cs
-           ON cs.category_id = b.category_id
-          AND cs.month = b.month
+    CROSS JOIN LATERAL (
+        SELECT COALESCE(SUM(t.amount), 0)::NUMERIC AS spent
+        FROM transactions t
+        WHERE t.category_id = b.category_id
+          AND t.txn_date >= b.month
+          AND t.txn_date <  b.month + INTERVAL '1 month'
+    ) s
     WHERE b.user_id = p_user_id
       AND b.month   = DATE_TRUNC('month', p_month)::DATE
-      AND COALESCE(cs.total_spent, 0) > b.limit_amount;
+      AND s.spent > b.limit_amount;
 $$ LANGUAGE sql STABLE;
 
 -- Move money between two accounts of the same user as ONE unit of work.
