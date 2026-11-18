@@ -248,9 +248,6 @@ select.ft-input { appearance: auto; padding-right: 8px; }
 .ft-auth-art .credit { margin: 0; font-size: 13px; color: #94A3B8; position: relative; text-align: center; }
 .ft-auth-form { flex: 1 1 480px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; padding: 32px; }
 .ft-auth-form .inner { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 18px; }
-.ft-auth-logo { display: flex; align-items: center; gap: 12px; }
-.ft-auth-logo img { width: 64px; height: 64px; }
-.ft-auth-logo .ft-wordmark { font-size: 40px; }
 .ft-auth h1 { margin: 6px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.08; }
 .ft-auth .lead-text { margin: 0; font-size: 16px; line-height: 1.6; color: #475569; }
 .ft-auth h2 { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 600; letter-spacing: -0.02em; }
@@ -283,8 +280,6 @@ select.ft-input { appearance: auto; padding-right: 8px; }
   .ft-auth h1 { font-size: clamp(26px, 2.6vw, 36px); margin-top: 0; }
   .ft-auth h2 { font-size: 28px; }
   .ft-auth .lead-text { font-size: 15px; line-height: 1.5; }
-  .ft-auth-logo img { width: 52px; height: 52px; }
-  .ft-auth-logo .ft-wordmark { font-size: 34px; }
   .ft-inbox { height: 46px; }
   .ft-submit { min-height: 48px; }
   .ft-check { min-height: 30px; }
@@ -295,8 +290,6 @@ select.ft-input { appearance: auto; padding-right: 8px; }
   .ft-auth-form { padding: 16px 36px; gap: 14px; }
   .ft-auth-form .inner { gap: 8px; }
   #authForm.inner { gap: 10px; }
-  .ft-auth-logo img { width: 42px; height: 42px; }
-  .ft-auth-logo .ft-wordmark { font-size: 28px; }
   .ft-auth h1 { font-size: clamp(24px, 2.2vw, 30px); }
   .ft-auth h2 { font-size: 24px; }
   .ft-auth .lead-text { font-size: 14px; }
@@ -342,13 +335,11 @@ select.ft-input { appearance: auto; padding-right: 8px; }
 @media (max-width: 575.98px) {
   .ft-card { padding: 16px; border-radius: 20px; }
   .ft-auth { padding: 12px; }
-  .ft-auth-art { min-height: 0; padding: 76px 24px 24px; border-radius: 22px; }
-  .ft-auth-art .ft-art-logo { top: 22px; left: 24px; }
-  .ft-auth-art .chips, .ft-auth-art .credit { display: none; }
-  .ft-auth-form { padding: 8px 4px 24px; order: -1; }
+  .ft-auth-art { flex: none; width: 100%; min-height: 0; padding: 18px 20px; border-radius: 20px; align-items: flex-start; }
+  .ft-auth-art .ft-art-logo { position: static; }
+  .ft-auth-art > img, .ft-auth-art .glow1, .ft-auth-art .glow2, .ft-auth-art .chips, .ft-auth-art .credit { display: none; }
+  .ft-auth-form { padding: 8px 4px 24px; }
   .ft-auth h1 { font-size: 30px; }
-  .ft-auth-logo .ft-wordmark { font-size: 32px; }
-  .ft-auth-logo img { width: 52px; height: 52px; }
   .ft-flow .m { font-size: 10px; }
   .ft-flow .tip { display: none; }
   .ft-top-actions .ft-month { flex: 1; }
