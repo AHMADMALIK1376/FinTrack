@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>FinTrack · Reports</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="assets/icon.svg">
+<link href="vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="visually-hidden-focusable" href="#content">Skip to content</a>
+<div class="ft-app">
+  <aside class="ft-card ft-side" id="sidebar"></aside>
+  <main class="ft-main" id="content">
+    <header class="ft-top" id="topbar"></header>
+    <p class="ft-print-only" id="printHead"></p>
+
+    <div class="ft-grid-4" id="stats"></div>
+
+    <section class="ft-card d-flex flex-column gap-3">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <h2 class="ft-label">Month by month</h2>
+        <div class="d-flex flex-wrap align-items-center gap-3">
+          <span class="ft-legend"><i style="background:var(--ft-brand)"></i>Income</span>
+          <span class="ft-legend"><i style="background:var(--ft-accent)"></i>Expense</span>
+        </div>
+      </div>
+      <div class="ft-flow ft-keep" role="img" id="flow" style="--bars:200px"></div>
+      <div class="table-responsive">
+        <table class="ft-table ft-report-table">
+          <thead><tr><th>Month</th><th class="num">Income</th><th class="num">Expense</th><th class="num">Saved</th><th class="num">Saving rate</th></tr></thead>
+          <tbody id="months"></tbody>
+          <tfoot id="monthsTotal"></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <section class="ft-card d-flex flex-column gap-3">
+      <div class="d-flex flex-wrap justify-content-between align-items-end gap-2">
+        <div><h2 class="ft-label">By category</h2>
+          <p class="ft-muted mt-1">Darker cells mean more money that month. "FinTrack average" compares your average month with other people's.</p></div>
+      </div>
+      <div class="table-responsive">
+        <table class="ft-table ft-report-table ft-heat-table">
+          <thead id="catHead"></thead>
+          <tbody id="cats"></tbody>
+        </table>
+      </div>
+      <p class="ft-muted" id="avgNote" style="line-height:1.5"></p>
+    </section>
+  </main>
+</div>
+<nav class="ft-tabbar" id="tabbar" aria-label="Main"></nav>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/api.js"></script>
+<script src="js/layout.js"></script>
+<script>
+  shell.render('reports.html', {
+    title: 'Reports', sub: 'Your year, month by month and category by category',
+    actions: `<label class="ft-month">${icon('calendar', 18)}<span class="visually-hidden">Year</span><select id="year" class="border-0 bg-transparent" style="outline:none;font-size:14px"></select></label>
+      <button class="ft-btn light" type="button" onclick="window.print()">${icon('download', 18)}Print or save as PDF</button>`,
+  });
+  const $ = (id) => document.getElementById(id);
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const params = new URLSearchParams(location.search);
+
+  async function load() {
+    const year = Number($('year').value || params.get('year') || new Date().getFullYear());
+    const r = await api('/reports/year?year=' + year);
+    $('year').innerHTML = r.years.map((y) => `<option ${y === r.year ? 'selected' : ''}>${y}</option>`).join('');
+    history.replaceState(null, '', `?year=${r.year}`);
+    const user = auth.user || {};
+    $('printHead').textContent = `FinTrack year report ${r.year} · ${user.full_name || ''} · printed ${dateLabel(today())}`;
+
+    // months: income and expense per month
+    const inc = Array(12).fill(0), exp = Array(12).fill(0);
+    r.cells.forEach((c) => { (c.type === 'income' ? inc : exp)[c.month - 1] += Number(c.total); });
+    const sum = (a) => a.reduce((s, v) => s + v, 0);
+    const income = sum(inc), expense = sum(exp), saved = income - expense;
+    const lastMonth = r.year === new Date().getFullYear() ? new Date().getMonth() + 1 : 12;   // months so far this year
+    const activeMonths = Math.max(1, inc.concat(exp).some(Boolean) ? lastMonth : 1);
+
+    $('stats').innerHTML = [
+      ['Income', money(income), 'up', 'var(--ft-green)', `about ${money(income / activeMonths)} a month`],
+      ['Expense', money(expense), 'down', 'var(--ft-text)', `about ${money(expense / activeMonths)} a month`],
+      ['Saved', (saved < 0 ? '−' : '') + money(Math.abs(saved)), 'wallet', saved < 0 ? 'var(--ft-red)' : 'var(--ft-text)', saved < 0 ? 'Spent more than earned' : 'Income minus expense'],
+      ['Saving rate', income ? `${pct(saved, income)}%` : '–', 'target', 'var(--ft-text)', 'of income kept'],
+    ].map(([t, v, i, c, n]) => `<div class="ft-card ft-stat ft-keep"><div class="d-flex justify-content-between align-items-center"><p class="t">${t}</p><span style="color:${c}">${icon(i, 18)}</span></div>
+      <p class="ft-big" style="font-size:28px">${v}</p><p class="ft-muted">${n}</p></div>`).join('');
+
+    const max = Math.max(...inc, ...exp, 1) * 1.15;
+    const flow = $('flow');
+    flow.setAttribute('aria-label', `Income and expense by month in ${r.year}: ` + MONTHS.map((m, i) => `${m} income ${money(inc[i])}, expense ${money(exp[i])}`).join('; '));
+    flow.innerHTML = MONTHS.map((m, i) => {
+      const a = inc[i] / max * 100, b = exp[i] / max * 100;
+      return `<div class="col" title="${m}: income ${money(inc[i])}, expense ${money(exp[i])}"><div class="bars" style="height:var(--bars)">
+        <div class="ft-stripe" style="height:${Math.min(100, Math.max(a, b) + 8)}%"></div>
+        ${(b > a ? [['exp', b], ['inc', a]] : [['inc', a], ['exp', b]]).map(([cls, h]) => `<div class="${cls}" style="height:${h}%"></div>`).join('')}
+      </div><span class="m">${m}</span></div>`;
+    }).join('');
+
+    $('months').innerHTML = MONTHS.map((m, i) => {
+      const s = inc[i] - exp[i];
+      if (!inc[i] && !exp[i]) return `<tr class="text-muted"><td>${m} ${r.year}</td><td colspan="4" class="num ft-muted">No entries</td></tr>`;
+      return `<tr><td>${m} ${r.year}</td><td class="num amt-income">${money(inc[i])}</td><td class="num">${money(exp[i])}</td>
+        <td class="num" style="color:${s < 0 ? 'var(--ft-red)' : 'inherit'}">${s < 0 ? '−' : ''}${money(Math.abs(s))}</td><td class="num">${inc[i] ? pct(s, inc[i]) + '%' : '–'}</td></tr>`;
+    }).join('');
+    $('monthsTotal').innerHTML = `<tr><th>Year</th><th class="num">${money(income)}</th><th class="num">${money(expense)}</th>
+      <th class="num">${saved < 0 ? '−' : ''}${money(Math.abs(saved))}</th><th class="num">${income ? pct(saved, income) + '%' : '–'}</th></tr>`;
+
+    // categories × months heat table
+    const cats = {};
+    r.cells.forEach((c) => {
+      const k = c.category_id;
+      cats[k] = cats[k] || { name: c.category, type: c.type, months: Array(12).fill(0), months_used: 0, total: 0 };
+      cats[k].months[c.month - 1] += Number(c.total);
+      cats[k].total += Number(c.total);
+    });
+    const list = Object.values(cats).sort((a, b) => (a.type === b.type ? b.total - a.total : a.type === 'expense' ? -1 : 1));
+    const avg = Object.fromEntries(r.averages.map((a) => [`${a.type}|${a.category}`, Number(a.average_per_month)]));
+    $('catHead').innerHTML = `<tr><th>Category</th>${MONTHS.map((m) => `<th class="num">${m}</th>`).join('')}<th class="num">Total</th><th class="num">Share</th><th class="num">Average month<br><span class="ft-muted" style="font-weight:400">you vs FinTrack</span></th></tr>`;
+    let lastType = '';
+    $('cats').innerHTML = list.map((c) => {
+      const top = Math.max(...c.months, 1);
+      const used = c.months.filter(Boolean).length;
+      const mine = c.total / Math.max(1, used);
+      const theirs = avg[`${c.type}|${c.name}`];
+      const base = c.type === 'income' ? income : expense;
+      const colour = c.type === 'income' ? '60,203,142' : '47,111,214';
+      const heading = c.type !== lastType ? `<tr class="ft-group"><td colspan="17">${c.type === 'income' ? 'Income' : 'Expense'}</td></tr>` : '';
+      lastType = c.type;
+      let compare = `${moneyShort(mine)}<br><span class="ft-muted">no average yet</span>`;
+      if (theirs) {
+        const diff = pct(mine - theirs, theirs);
+        const word = c.type === 'income' ? ['more', 'less'] : ['more', 'less'];
+        compare = `${moneyShort(mine)} <span class="ft-muted">vs</span> ${moneyShort(theirs)}<br><span class="ft-muted">${Math.abs(diff) < 5 ? 'about the same' : `${Math.abs(diff)}% ${diff > 0 ? word[0] : word[1]}`}</span>`;
+      }
+      return `${heading}<tr><td><span class="who"><span class="ft-cat ${c.type}" style="width:32px;height:32px">${icon(catIcon(c.name), 16)}</span><b>${esc(c.name)}</b></span></td>
+        ${c.months.map((v, i) => `<td class="num ft-heat-cell" style="background:rgba(${colour},${v ? (.12 + .7 * v / top).toFixed(2) : 0});color:${v / top > .6 ? '#fff' : 'inherit'}" title="${esc(c.name)}, ${MONTHS[i]}: ${money(v)}">${v ? moneyShort(v).replace('Rs ', '') : ''}</td>`).join('')}
+        <td class="num fw-semibold">${money(c.total)}</td><td class="num">${pct(c.total, base)}%</td><td class="num" style="white-space:nowrap">${compare}</td></tr>`;
+    }).join('') || `<tr><td colspan="17" class="ft-empty">No transactions in ${r.year}.</td></tr>`;
+
+    $('avgNote').innerHTML = `${icon('help', 14)} <b>FinTrack average</b>: what people who used the same category spent or earned in an average month of ${r.year}.
+      It comes from a summary of all users that is rebuilt once a day (last: ${new Date(r.averages_updated_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}),
+      and it only counts categories used by at least ${r.min_users_for_average} people, so nobody's own spending can be seen.
+      Transfers between your own accounts are not counted as income or spending.`;
+  }
+
+  $('year').addEventListener('change', attempt(load));
+  attempt(load)();
+</script>
+</body>
+</html>
