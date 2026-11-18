@@ -45,20 +45,41 @@ RETURNS TABLE (category TEXT, limit_amount NUMERIC, spent NUMERIC, over_by NUMER
 $$ LANGUAGE sql STABLE;
 
 -- Move money between two accounts of the same user as ONE unit of work.
--- Either both rows are written or neither is (atomic).
+-- Either both rows are written or neither is (atomic, ACC-04).
+--
+-- Two transfers at the same moment (DB-13): both account rows are locked with
+-- SELECT ... FOR UPDATE before the balance is checked. A second transfer from
+-- the same account waits until the first one commits, then sees the new
+-- balance, so the account can never be overdrawn. The rows are always locked
+-- in account_id order, so two opposite transfers (A to B and B to A) cannot
+-- deadlock. See database/demo/two_sessions_transfer.sql.
 CREATE OR REPLACE PROCEDURE transfer_money(
     p_from_account INT, p_to_account INT, p_amount NUMERIC, p_note VARCHAR DEFAULT 'Transfer')
 LANGUAGE plpgsql AS $$
 DECLARE
-    v_user INT;
-    v_out  INT;
-    v_in   INT;
+    v_user    INT;
+    v_balance NUMERIC;
+    v_out     INT;
+    v_in      INT;
 BEGIN
-    SELECT user_id INTO v_user FROM accounts WHERE account_id = p_from_account;
-    IF v_user IS NULL OR v_user <> (SELECT user_id FROM accounts WHERE account_id = p_to_account) THEN
+    IF p_amount IS NULL OR p_amount <= 0 THEN
+        RAISE EXCEPTION 'The transfer amount must be greater than zero';
+    END IF;
+    IF p_from_account = p_to_account THEN
+        RAISE EXCEPTION 'Choose two different accounts';
+    END IF;
+
+    -- lock both rows, lowest id first; waits here if another transfer holds them
+    PERFORM 1 FROM accounts
+     WHERE account_id IN (p_from_account, p_to_account)
+     ORDER BY account_id
+       FOR UPDATE;
+
+    SELECT user_id, balance INTO v_user, v_balance FROM accounts WHERE account_id = p_from_account;
+    IF v_user IS NULL OR v_user IS DISTINCT FROM (SELECT user_id FROM accounts WHERE account_id = p_to_account) THEN
         RAISE EXCEPTION 'Both accounts must exist and belong to the same user';
     END IF;
-    IF (SELECT balance FROM accounts WHERE account_id = p_from_account) < p_amount THEN
+    IF v_balance < p_amount THEN
         RAISE EXCEPTION 'Not enough balance for this transfer';
     END IF;
 

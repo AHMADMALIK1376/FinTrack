@@ -31,6 +31,7 @@ function routes(): array
         ['DELETE', '/api/accounts/{id}', 'accounts_delete', true],
         ['GET', '/api/categories', 'categories_list', true],
         ['POST', '/api/categories', 'categories_create', true],
+        ['PUT', '/api/categories/{id}', 'categories_update', true],
         ['DELETE', '/api/categories/{id}', 'categories_delete', true],
         ['GET', '/api/transactions', 'transactions_list', true],
         ['POST', '/api/transactions', 'transactions_create', true],
@@ -114,6 +115,19 @@ function send_error(Throwable $error): void
             // a message raised by our own triggers or procedures, e.g. "Not enough balance for this transfer"
             json_response(['error' => raised_message($error)], 400);
             return;
+        }
+        // the FinTrack types from database/07_types.sql (DB-11)
+        $text = $error->getMessage();
+        $typeMessages = [
+            'account_kind' => 'Choose an account type: bank, cash, wallet or card.',
+            'category_kind' => 'Choose whether the category is income or expense.',
+            'money_pkr' => 'Amounts can be at most Rs 999,999,999.99.',
+        ];
+        foreach ($typeMessages as $type => $message) {
+            if (in_array($state, ['22P02', '23514'], true) && str_contains($text, $type)) {
+                json_response(['error' => $message], 400);
+                return;
+            }
         }
         if (isset($known[$state])) {
             json_response(['error' => $known[$state]], 400);

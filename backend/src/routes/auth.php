@@ -1,5 +1,5 @@
 <?php
-/** Sign-up and log-in (AUTH-01 – AUTH-04). Passwords are stored only as bcrypt hashes. */
+/** Sign-up and log-in (AUTH-01 – AUTH-04, SEC-05). Passwords are stored only as bcrypt hashes. */
 declare(strict_types=1);
 
 /** POST /api/auth/register  { full_name, email, password } */
@@ -42,9 +42,20 @@ function auth_login(): void
 {
     $body = request_body();
     $email = strtolower(trim((string) field($body, 'email')));
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+
+    // SEC-05: after 5 wrong passwords in 10 minutes, this computer must wait (database/08_login_attempts.sql)
+    $wait = (int) (query_one('SELECT login_wait_seconds(CAST(? AS inet)) AS seconds', [$ip])['seconds'] ?? 0);
+    if ($wait > 0) {
+        $minutes = (int) ceil($wait / 60);
+        throw new ApiError(429, 'Too many wrong passwords from this computer. Please try again in '
+            . $minutes . ($minutes === 1 ? ' minute.' : ' minutes.'));
+    }
+
     $user = query_one('SELECT * FROM users WHERE email = ?', [$email]);
     // the same message whether the email or the password is wrong, so emails can't be guessed
     if ($user === null || !password_verify((string) field($body, 'password'), $user['password_hash'])) {
+        execute('CALL record_failed_login(CAST(? AS inet), ?)', [$ip, $email]);
         throw new ApiError(401, 'Wrong email or password.');
     }
     json_response(['token' => jwt_sign($user), 'user' => [

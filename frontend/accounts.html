@@ -53,7 +53,7 @@
         </form>
         <div><p class="ft-sec" style="margin:0 0 8px">Income</p><div class="d-flex flex-wrap gap-2" id="incomeCats"></div></div>
         <div><p class="ft-sec" style="margin:0 0 8px">Expense</p><div class="d-flex flex-wrap gap-2" id="expenseCats"></div></div>
-        <p class="ft-muted" style="line-height:1.5">A category that already has transactions can't be removed, so your history stays correct.</p>
+        <p class="ft-muted" style="line-height:1.5">Use the pencil to rename a category. A category that already has transactions can't be removed, so your history stays correct.</p>
       </section>
 
       <!-- activity (audit log) -->
@@ -143,6 +143,7 @@
     txns.forEach((t) => { counts[t.category_id] = (counts[t.category_id] || 0) + 1; });
     const chip = (c) => `<span class="ft-catchip"><span style="color:${c.type === 'income' ? 'var(--ft-green)' : '#334155'}">${icon(catIcon(c.name), 16)}</span>${esc(c.name)}
       <span class="ft-count">${counts[c.category_id] || 0}</span>
+      ${c.name === 'Transfer' ? '' : `<button type="button" onclick="renameCategory(${c.category_id})" aria-label="Rename ${esc(c.name)}">${icon('edit', 14)}</button>`}
       <button type="button" onclick="deleteCategory(${c.category_id})" aria-label="Remove ${esc(c.name)}">${icon('x', 14)}</button></span>`;
     $('incomeCats').innerHTML = categories.filter((c) => c.type === 'income').map(chip).join('') || '<span class="ft-muted">None yet</span>';
     $('expenseCats').innerHTML = categories.filter((c) => c.type === 'expense').map(chip).join('') || '<span class="ft-muted">None yet</span>';
@@ -234,6 +235,15 @@
     $('catName').value = '';
     await load();
   }));
+  window.renameCategory = attempt(async (id) => {
+    const c = categories.find((x) => x.category_id === id);
+    const v = await formDialog({ title: `Rename "${c.name}"`, submit: 'Rename', fields: [
+      { name: 'name', label: `New name (stays ${c.type === 'income' ? 'an income' : 'an expense'} category)`, value: c.name, required: true, max: 60 }] });
+    if (!v || v.name.trim() === c.name) return;
+    await api('/categories/' + id, { method: 'PUT', body: { name: v.name.trim() } });
+    toast('Category renamed');
+    await load();
+  });
   window.deleteCategory = attempt(async (id) => {
     const name = categories.find((c) => c.category_id === id)?.name || 'this category';
     const ok = await confirmAction({ title: `Remove "${name}"?`, text: 'You can only remove a category that has no transactions.', confirm: 'Remove' });
