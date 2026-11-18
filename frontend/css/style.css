@@ -226,6 +226,38 @@ select.ft-input { appearance: auto; padding-right: 8px; }
 .ft-tip .track { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, .15); }
 .ft-tip .track div { height: 100%; border-radius: 999px; }
 
+/* ---------- reports ---------- */
+.ft-report-table .num { text-align: right; }
+.ft-report-table tfoot th { font-size: 14px; color: var(--ft-text); font-weight: 600; border-top: 2px solid var(--ft-line); border-bottom: 0; padding: 12px; }
+.ft-heat-table td, .ft-heat-table th { padding: 8px 6px; font-size: 12.5px; }
+.ft-heat-table .ft-heat-cell { min-width: 40px; border-radius: 6px; border: 2px solid #fff; font-variant-numeric: tabular-nums; }
+.ft-heat-table .ft-group td { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ft-muted); font-weight: 600; padding-top: 16px; border-bottom: 1px solid var(--ft-line); }
+.ft-print-only { display: none; }
+
+/* Print or "Save as PDF": just the report, in black on white, no menus */
+@media print {
+  @page { size: A4 landscape; margin: 12mm; }
+  body { background: #fff; }
+  .ft-side, .ft-tabbar, .ft-top-actions, .ft-phone-head, .visually-hidden-focusable, .toast-container { display: none !important; }
+  .ft-app { display: block; padding: 0; }
+  .ft-main { gap: 12px; }
+  .ft-card { border: 1px solid #CBD5E1; border-radius: 10px; padding: 12px; box-shadow: none; }
+  .ft-keep, tr { break-inside: avoid; }
+  .ft-print-only { display: block; font-size: 12px; color: #475569; margin: 0; }
+  .ft-flow .bars { height: 80px !important; }
+  .ft-main > .ft-card { gap: 6px !important; }
+  .ft-muted { font-size: 10px; }
+  .table-responsive { overflow: visible; }
+  .ft-heat-table td, .ft-heat-table th { padding: 2px 3px; font-size: 9px; line-height: 1.15; }
+  .ft-heat-table .ft-heat-cell { border-width: 1px; }
+  .ft-flow .m { font-size: 9px; }
+  .ft-heat-table .ft-cat { display: none; }
+  .ft-report-table td, .ft-report-table th { padding: 4px 8px; font-size: 10.5px; }
+  .ft-stat { padding: 10px; gap: 4px; }
+  .ft-stat .ft-big { font-size: 20px !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
 /* ---------- pop-ups and toasts ---------- */
 .modal-content { border: 0; border-radius: 22px; }
 .modal-header, .modal-footer { border: 0; }

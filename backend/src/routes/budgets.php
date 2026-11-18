@@ -6,13 +6,17 @@ declare(strict_types=1);
 function budgets_list(array $user): void
 {
     $month = (query_param('month') ?? this_month()) . '-01';
+    // spending per budget for that month only (a date range, so the category + date index is used; see docs/performance.md)
     json_response(query(
-        'SELECT b.*, c.name AS category, COALESCE(cs.total_spent, 0) AS spent
+        "SELECT b.*, c.name AS category, s.spent
          FROM budgets b
          JOIN categories c ON c.category_id = b.category_id
-         LEFT JOIN category_spending cs ON cs.category_id = b.category_id AND cs.month = b.month
+         CROSS JOIN LATERAL (
+             SELECT COALESCE(SUM(t.amount), 0) AS spent FROM transactions t
+             WHERE t.category_id = b.category_id AND t.txn_date >= b.month AND t.txn_date < b.month + INTERVAL '1 month'
+         ) s
          WHERE b.user_id = ? AND b.month = CAST(? AS date)
-         ORDER BY c.name', [$user['id'], $month]));
+         ORDER BY c.name", [$user['id'], $month]));
 }
 
 /** POST /api/budgets  { category_id, limit_amount, month: "2026-11" } (sets or changes the limit) */
