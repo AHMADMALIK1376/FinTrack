@@ -93,6 +93,7 @@ FinTrack/
 │   ├── 06_roles.sql           fintrack_app and fintrack_report roles
 │   ├── 07_types.sql           money_pkr domain, account_kind and category_kind enums
 │   ├── 08_login_attempts.sql  refuse a computer after 5 wrong passwords in 10 minutes
+│   ├── 09_recurring.sql       recurring transactions and post_due_recurring()
 │   ├── demo/                  two-window pgAdmin demo: transfers at the same moment
 │   └── tests/                 database tests (run in pgAdmin or with npm test)
 ├── backend/               PHP REST API
@@ -131,9 +132,9 @@ FinTrack/
 
 1. Open pgAdmin 4, right-click **Databases → Create → Database…** and name it `fintrack`.
 2. Select `fintrack`, open **Tools → Query Tool**.
-3. Open and run (F5) each file from the `database/` folder **in order**: `01_schema.sql`, `02_triggers.sql`, `03_views_functions.sql`, `04_seed.sql` (sample data), `05_audit.sql` (audit log), `06_roles.sql` (the `fintrack_app` and `fintrack_report` roles), `07_types.sql` (FinTrack's own data types) and `08_login_attempts.sql` (log-in limit).
+3. Open and run (F5) each file from the `database/` folder **in order**: `01_schema.sql`, `02_triggers.sql`, `03_views_functions.sql`, `04_seed.sql` (sample data), `05_audit.sql` (audit log), `06_roles.sql` (the `fintrack_app` and `fintrack_report` roles), `07_types.sql` (FinTrack's own data types), `08_login_attempts.sql` (log-in limit) and `09_recurring.sql` (recurring transactions).
 
-**Already have a `fintrack` database from an earlier step?** Run just the new files: `03_views_functions.sql` (the transfer now locks rows), then `07_types.sql` and `08_login_attempts.sql`. Your data stays.
+**Already have a `fintrack` database from an earlier step?** Run just the new files: `03_views_functions.sql` (the transfer now locks rows), then `07_types.sql`, `08_login_attempts.sql` and `09_recurring.sql`. Your data stays.
 
 Or from a terminal:
 
@@ -154,6 +155,12 @@ Open **http://localhost:3000** in your browser.
 
 **Demo login** (from the sample data): `demo@fintrack.pk` / `demo1234`
 
+**Recurring transactions** (rent every month, a bus pass every week) are posted when you log in. If nobody logs in for a while, a daily job can post them; on Windows, once, in PowerShell (change the path to your PHP and FinTrack folders):
+
+```powershell
+schtasks /Create /SC DAILY /ST 06:00 /TN "FinTrack recurring" /TR "php D:\FinTrack\backend\bin\post-recurring.php"
+```
+
 **If it says "Database password not set":** the PHP server or tests could not read `backend/.env`. On Windows, Notepad often saves it as `.env.txt`; rename it with `Rename-Item .env.txt .env`, and make sure it has a `PGPASSWORD=` line. If PostgreSQL is installed in a different folder or port, set `PGPORT` to match (check with `Get-Service *postgres*` and the `port =` line in `postgresql.conf`).
 
 ## Running the tests
@@ -168,6 +175,7 @@ This rebuilds a separate database called `fintrack_test` from the scripts in `da
 
 - **Database tests** (`database/tests/*.sql`): constraints, triggers, views, `check_budget()` and `transfer_money()`. You can also open any of these files in pgAdmin's Query Tool and run them; each passing check prints `PASS <rule>` and nothing is changed.
 - **API tests** (`backend/tests/api.test.js`): the tests start the PHP server on a free port and call every route over HTTP, including privacy checks where a second user tries to read or change the first user's data.
+- **Two-session test** (`backend/tests/concurrency.test.js`): two database connections transfer money at the same moment; the second must wait and be refused (DB-13).
 
 The same tests run automatically on GitHub for every pull request (see the **Actions** tab).
 
@@ -184,7 +192,9 @@ All routes except `/api/auth/*` need the header `Authorization: Bearer <token>`.
 | POST | `/api/accounts/transfer` | Move money `{ from_account, to_account, amount }` |
 | GET / POST | `/api/categories` | List / add categories |
 | PUT / DELETE | `/api/categories/:id` | Rename `{ name }` / delete a category |
-| GET | `/api/transactions` | List; filters `?month=2026-11&type=expense&category_id=&account_id=&search=` |
+| GET | `/api/transactions` | List; filters `?month=2026-11&type=expense&category_id=&account_id=&search=`; pages with `&limit=50`, next page `&before_date=&before_id=` (date and id of the last row) |
+| GET / POST | `/api/recurring` | List / add a recurring transaction `{ account_id, category_id, amount, description, frequency: weekly\|monthly, start_date }`; due dates are posted at once |
+| PUT / DELETE | `/api/recurring/:id` | Pause or resume `{ is_active }`, change `{ amount, description }` / stop repeating (posted transactions stay) |
 | POST | `/api/transactions` | Add `{ account_id, category_id, amount, txn_date, description }` |
 | PUT / DELETE | `/api/transactions/:id` | Edit / delete a transaction |
 | GET / POST | `/api/budgets` | List for `?month=` / set a budget `{ category_id, limit_amount, month }` |
