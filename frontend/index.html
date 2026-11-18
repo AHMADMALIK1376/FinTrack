@@ -16,7 +16,7 @@
   <section class="ft-auth-art" aria-label="What FinTrack does">
     <div class="glow1" aria-hidden="true"></div><div class="glow2" aria-hidden="true"></div>
     <img src="assets/login-animation.svg" width="620" height="420"
-         alt="A balance card, income and expense bars growing month by month, a savings goal filling up, and notifications for a salary, a budget alert and a transfer">
+         alt="Shan the snow leopard waving beside a money-flow chart: income and expense bars growing month by month, a savings goal filling up, and notifications for a salary, a budget alert and a transfer">
     <div class="chips" id="chips"></div>
     <p class="credit">CSC332L Advance Database Management Systems Lab · Iqra University</p>
   </section>
@@ -34,10 +34,6 @@
         <div style="min-width:0">
           <h2 id="formTitle">Log in</h2>
           <p class="ft-muted mt-1" style="font-size:15px" id="formSub">Welcome back to FinTrack.</p>
-        </div>
-        <div class="ft-shan-say">
-          <div class="ft-bubble" id="bubble"><b id="say">Salaam!</b><span id="saySub">Ready to check your track?</span></div>
-          <img src="assets/shan-wave.svg" alt="Shan the Snow Leopard, the FinTrack mascot, waving" width="104" height="124">
         </div>
       </div>
 
@@ -81,10 +77,10 @@
   nameIcon.innerHTML = icon('help', 18); mailIcon.innerHTML = icon('mail', 18); lockIcon.innerHTML = icon('lock', 18);
   showPw.innerHTML = icon('eye', 18); submitIcon.innerHTML = icon('arrowr', 18); helpIcon.innerHTML = icon('help', 18);
 
-  // Shan's lines and the form text for each tab
+  // the form text for each tab
   const MODES = {
-    login: { title: 'Log in', sub: 'Welcome back to FinTrack.', say: 'Salaam!', saySub: 'Ready to check your track?', button: 'Log in', path: '/auth/login' },
-    signup: { title: 'Create your account', sub: 'It takes less than a minute.', say: "Let's go!", saySub: "I'll help you set up your track.", button: 'Create my account', path: '/auth/register' },
+    login: { title: 'Log in', sub: 'Welcome back to FinTrack.', button: 'Log in', path: '/auth/login' },
+    signup: { title: 'Create your account', sub: 'It takes less than a minute.', button: 'Create my account', path: '/auth/register' },
   };
   let mode = 'login';
 
@@ -93,8 +89,6 @@
     const m = MODES[mode];
     const signup = mode === 'signup';
     formTitle.textContent = m.title; formSub.textContent = m.sub; submitText.textContent = m.button;
-    say.textContent = m.say; saySub.textContent = m.saySub;
-    bubble.style.animation = 'none'; void bubble.offsetWidth; bubble.style.animation = '';
     tabLogin.setAttribute('aria-selected', !signup); tabSignup.setAttribute('aria-selected', signup);
     nameField.classList.toggle('d-none', !signup);
     pwHint.classList.toggle('d-none', !signup);
