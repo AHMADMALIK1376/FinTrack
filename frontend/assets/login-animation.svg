@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg class="ft2" viewBox="0 0 620 420" role="img" aria-label="Animation: a balance card, income and expense bars growing month by month, a rising savings line, a savings goal filling to 72 percent, and notifications for a salary, a budget alert and a transfer" font-family="Inter, Segoe UI, system-ui, sans-serif" xmlns="http://www.w3.org/2000/svg" width="620" height="420">
+<svg class="ft2" viewBox="0 0 620 420" role="img" aria-label="Animation: Shan the snow leopard waving beside a money-flow chart, a balance card, income and expense bars growing month by month, a rising savings line, a savings goal filling to 72 percent, and notifications for a salary, a budget alert and a transfer" font-family="Inter, Segoe UI, system-ui, sans-serif" xmlns="http://www.w3.org/2000/svg" width="620" height="420">
   <style>
 .ft2 .rise{animation:ft2-rise 10s cubic-bezier(.2,.9,.25,1.1) infinite both}
 .ft2 .bar{transform-box:fill-box;transform-origin:50% 100%;animation:ft2-grow 10s cubic-bezier(.3,1.5,.5,1) infinite both}
@@ -25,11 +25,25 @@
 @keyframes ft2-float{0%{transform:translateY(40px) rotate(0deg);opacity:0}15%{opacity:.9}85%{opacity:.9}100%{transform:translateY(-420px) rotate(25deg);opacity:0}}
 @keyframes ft2-twinkle{0%,100%{transform:scale(.4);opacity:.2}50%{transform:scale(1);opacity:1}}
 @media (prefers-reduced-motion: reduce){.ft2 *{animation:none!important}.ft2 .coin,.ft2 .spark,.ft2 .runner,.ft2 .pulse{display:none}}
+
+.shan{transform-box:fill-box;transform-origin:50% 100%;animation:shan-bob 3s ease-in-out infinite}
+.shan .eyes{transform-box:fill-box;transform-origin:center;animation:shan-blink 4.5s ease-in-out infinite}
+.shan .wave{transform-box:fill-box;transform-origin:0% 100%;animation:shan-wave 1.6s ease-in-out infinite}
+.shan .tail{transform-box:fill-box;transform-origin:0% 100%;animation:shan-tail 2.8s ease-in-out infinite}
+.shan-cheer{transform-box:fill-box;transform-origin:50% 100%;animation:shan-cheer 9s ease-out 2.6s infinite both}
+.shan-say{transform-box:fill-box;transform-origin:20% 100%;animation:shan-say 9s cubic-bezier(.2,.8,.2,1) 4.6s infinite both}
+@keyframes shan-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes shan-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes shan-wave{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(14deg)}}
+@keyframes shan-tail{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(5deg)}}
+@keyframes shan-cheer{0%,8%,100%{transform:translateY(0) scale(1)}3%{transform:translateY(-16px) scale(1.04)}5%{transform:translateY(0) scale(1.06,.94)}}
+@keyframes shan-say{0%{transform:scale(0);opacity:0}6%{transform:scale(1.06);opacity:1}9%{transform:scale(1)}68%{transform:scale(1);opacity:1}76%,100%{transform:scale(.8);opacity:0}}
+@media (prefers-reduced-motion: reduce){.shan,.shan *,.shan-cheer,.shan-say{animation:none!important}}
 </style>
   <defs>
     <linearGradient id="ft2-shine" x1="0" x2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/><stop offset=".5" stop-color="#FFFFFF" stop-opacity=".55"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
     <clipPath id="ft2-balclip"><rect x="16" y="16" width="270" height="92" rx="18"/></clipPath>
-    <path id="ft2-path" d="M64 280 L118 265 L172 282 L226 258 L280 245 L334 200"/>
+    <path id="ft2-path" d="M139 280 L181 265 L223 282 L265 258 L307 245 L349 200"/>
   </defs>
   <g aria-hidden="true"><g class="coin" style="animation-delay:0.00s"><circle cx="388" cy="400" r="11" fill="#3CCB8E" opacity=".9"/><text x="388" y="403.9" text-anchor="middle" font-size="9" font-weight="800" fill="#1C2B44">Rs</text></g><g class="coin" style="animation-delay:2.30s"><circle cx="24" cy="420" r="8" fill="#3CCB8E" opacity=".9"/><text x="24" y="422.8" text-anchor="middle" font-size="7" font-weight="800" fill="#1C2B44">Rs</text></g><g class="coin" style="animation-delay:4.60s"><circle cx="590" cy="430" r="9" fill="#3CCB8E" opacity=".9"/><text x="590" y="433.1" text-anchor="middle" font-size="8" font-weight="800" fill="#1C2B44">Rs</text></g><g class="coin" style="animation-delay:1.20s"><circle cx="300" cy="440" r="7" fill="#3CCB8E" opacity=".9"/><text x="300" y="442.4" text-anchor="middle" font-size="6" font-weight="800" fill="#1C2B44">Rs</text></g><path class="spark" style="animation-delay:0.00s" d="M282 23 L284 28 L289 30 L284 32 L282 37 L280 32 L275 30 L280 28 Z" fill="#FFFFFF"/><path class="spark" style="animation-delay:0.90s" d="M604 189 L606 194 L611 196 L606 198 L604 203 L602 198 L597 196 L602 194 Z" fill="#FFFFFF"/><path class="spark" style="animation-delay:1.70s" d="M14 143 L16 148 L21 150 L16 152 L14 157 L12 152 L7 150 L12 148 Z" fill="#FFFFFF"/><path class="spark" style="animation-delay:2.20s" d="M382 109 L384 114 L389 116 L384 118 L382 123 L380 118 L375 116 L380 114 Z" fill="#FFFFFF"/></g>
 
@@ -48,12 +62,40 @@
     <rect x="252" y="143" width="9" height="9" rx="2" fill="#2F6FD6"/><text x="265" y="151" font-size="10" fill="#334155">Income</text>
     <rect x="310" y="143" width="9" height="9" rx="2" fill="#3CCB8E"/><text x="323" y="151" font-size="10" fill="#334155">Expense</text>
     <line x1="36" y1="360" x2="370" y2="360" stroke="#E7ECF2"/>
-    <rect class="bar" style="animation-delay:0.60s" x="44" y="268" width="19" height="92" rx="6" fill="#2F6FD6"/><rect class="bar" style="animation-delay:0.66s" x="65" y="296" width="19" height="64" rx="6" fill="#3CCB8E"/><text x="64" y="378" text-anchor="middle" font-size="10" fill="#64748B">Jun</text><rect class="bar" style="animation-delay:0.72s" x="98" y="248" width="19" height="112" rx="6" fill="#2F6FD6"/><rect class="bar" style="animation-delay:0.78s" x="119" y="288" width="19" height="72" rx="6" fill="#3CCB8E"/><text x="118" y="378" text-anchor="middle" font-size="10" fill="#64748B">Jul</text><rect class="bar" style="animation-delay:0.84s" x="152" y="276" width="19" height="84" rx="6" fill="#2F6FD6"/><rect class="bar" style="animation-delay:0.90s" x="173" y="302" width="19" height="58" rx="6" fill="#3CCB8E"/><text x="172" y="378" text-anchor="middle" font-size="10" fill="#64748B">Aug</text><rect class="bar" style="animation-delay:0.96s" x="206" y="226" width="19" height="134" rx="6" fill="#2F6FD6"/><rect class="bar" style="animation-delay:1.02s" x="227" y="272" width="19" height="88" rx="6" fill="#3CCB8E"/><text x="226" y="378" text-anchor="middle" font-size="10" fill="#64748B">Sep</text><rect class="bar" style="animation-delay:1.08s" x="260" y="238" width="19" height="122" rx="6" fill="#2F6FD6"/><rect class="bar" style="animation-delay:1.14s" x="281" y="294" width="19" height="66" rx="6" fill="#3CCB8E"/><text x="280" y="378" text-anchor="middle" font-size="10" fill="#64748B">Oct</text><rect class="bar" style="animation-delay:1.20s" x="314" y="198" width="19" height="162" rx="6" fill="#2F6FD6"/><rect class="bar" style="animation-delay:1.26s" x="335" y="290" width="19" height="70" rx="6" fill="#3CCB8E"/><text x="334" y="378" text-anchor="middle" font-size="10" fill="#64748B">Nov</text>
-    <path class="glow" d="M64 280 L118 265 L172 282 L226 258 L280 245 L334 200" fill="none" stroke="#3CCB8E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-    <path class="line" d="M64 280 L118 265 L172 282 L226 258 L280 245 L334 200" fill="none" stroke="#1C2B44" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle class="pulse" cx="334" cy="200" r="7" fill="#3CCB8E"/>
-    <circle class="runner" r="6" fill="#1C2B44" stroke="#FFFFFF" stroke-width="2.5" style="offset-path:path('M64 280 L118 265 L172 282 L226 258 L280 245 L334 200')"/>
-    <g class="pop" style="animation-delay:3.00s"><rect x="248" y="186" width="74" height="26" rx="9" fill="#1C2B44"/><text x="285" y="203" text-anchor="middle" font-size="11" font-weight="700" fill="#FFFFFF">+Rs 87,500</text></g>
+    <g transform="translate(24 261) scale(.54)"><g class="shan">
+  <ellipse cx="80" cy="184" rx="42" ry="5" fill="#0F172A" opacity=".12"/>
+  <g class="tail">
+    <path d="M112 156 C140 152 150 126 138 104 C132 94 142 86 148 94" stroke="#E2E8F0" stroke-width="16" fill="none" stroke-linecap="round"/>
+    <path d="M112 156 C140 152 150 126 138 104 C132 94 142 86 148 94" stroke="#94A3B8" stroke-width="16" fill="none" stroke-linecap="butt" stroke-dasharray="3 12" stroke-dashoffset="-6"/>
+  </g>
+  <path d="M64 156 L62 176 M96 156 L98 176" stroke="#E2E8F0" stroke-width="12" stroke-linecap="round"/>
+  <ellipse cx="60" cy="178" rx="12" ry="6" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+  <ellipse cx="100" cy="178" rx="12" ry="6" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+  <path d="M50 128 Q50 104 80 104 Q110 104 110 128 L108 158 Q80 168 52 158 Z" fill="#EEF2F7"/>
+  <path d="M54 118 L106 118 L108 150 Q80 160 52 150 Z" fill="#2F6FD6"/>
+  <path d="M54 126 L106 126" stroke="#3CCB8E" stroke-width="3"/>
+  <rect x="68" y="132" width="24" height="16" rx="4" fill="#FFFFFF"/>
+  <text x="80" y="144" text-anchor="middle" font-size="11" font-weight="800" fill="#1C2B44" font-family="Inter, system-ui, sans-serif">01</text>
+  <path d="M50 124 Q36 132 38 146" stroke="#E2E8F0" stroke-width="11" fill="none" stroke-linecap="round"/>
+  <circle cx="38" cy="148" r="6.5" fill="#EEF2F7"/>
+  <g class="wave"><path d="M110 122 Q126 112 124 94" stroke="#E2E8F0" stroke-width="11" fill="none" stroke-linecap="round"/><circle cx="124" cy="92" r="6.5" fill="#EEF2F7"/></g>
+  <circle cx="50" cy="40" r="13" fill="#EEF2F7"/><circle cx="50" cy="40" r="7" fill="#FFB8C6"/>
+  <circle cx="110" cy="40" r="13" fill="#EEF2F7"/><circle cx="110" cy="40" r="7" fill="#FFB8C6"/>
+  <ellipse cx="80" cy="70" rx="44" ry="40" fill="#F4F7FB"/>
+  <circle cx="52" cy="50" r="4.5" fill="none" stroke="#64748B" stroke-width="2.4" stroke-dasharray="18.9 9.0"/><circle cx="66" cy="38" r="4" fill="none" stroke="#64748B" stroke-width="2.4" stroke-dasharray="16.8 8.0"/><circle cx="96" cy="38" r="4" fill="none" stroke="#64748B" stroke-width="2.4" stroke-dasharray="16.8 8.0"/><circle cx="110" cy="52" r="4.5" fill="none" stroke="#64748B" stroke-width="2.4" stroke-dasharray="18.9 9.0"/><circle cx="46" cy="72" r="3.5" fill="none" stroke="#64748B" stroke-width="2.4" stroke-dasharray="14.7 7.0"/><circle cx="114" cy="74" r="3.5" fill="none" stroke="#64748B" stroke-width="2.4" stroke-dasharray="14.7 7.0"/><circle cx="80" cy="32" r="3.5" fill="none" stroke="#64748B" stroke-width="2.4" stroke-dasharray="14.7 7.0"/>
+  <ellipse cx="80" cy="86" rx="20" ry="15" fill="#FFFFFF"/>
+  <g class="eyes"><ellipse cx="63" cy="66" rx="6" ry="7.5" fill="#1C2B44"/><circle cx="65" cy="63.5" r="2.2" fill="#FFFFFF"/><ellipse cx="97" cy="66" rx="6" ry="7.5" fill="#1C2B44"/><circle cx="99" cy="63.5" r="2.2" fill="#FFFFFF"/></g>
+  <ellipse cx="54" cy="80" rx="5" ry="3" fill="#FF8FA3" opacity=".55"/><ellipse cx="106" cy="80" rx="5" ry="3" fill="#FF8FA3" opacity=".55"/>
+  <path d="M74 80 L86 80 L80 87 Z" fill="#FF8FA3"/>
+  <path d="M80 87 Q80 93 73 94 M80 87 Q80 93 87 94" stroke="#1C2B44" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <path d="M64 86 L50 84 M64 90 L50 92 M96 86 L110 84 M96 90 L110 92" stroke="#94A3B8" stroke-width="1.6" stroke-linecap="round"/>
+</g></g><g class="pop" style="animation-delay:3.40s"><rect x="32" y="220" width="76" height="30" rx="11" fill="#F1F4F8"/><path d="M78 249 L86 258 L88 249 Z" fill="#F1F4F8"/><text x="70" y="239" text-anchor="middle" font-size="11.5" font-weight="700" fill="#0F172A">On track!</text></g>
+    <rect class="bar" style="animation-delay:0.60s" x="122" y="268" width="16" height="92" rx="5" fill="#2F6FD6"/><rect class="bar" style="animation-delay:0.66s" x="140" y="296" width="16" height="64" rx="5" fill="#3CCB8E"/><text x="139" y="378" text-anchor="middle" font-size="10" fill="#64748B">Jun</text><rect class="bar" style="animation-delay:0.72s" x="164" y="248" width="16" height="112" rx="5" fill="#2F6FD6"/><rect class="bar" style="animation-delay:0.78s" x="182" y="288" width="16" height="72" rx="5" fill="#3CCB8E"/><text x="181" y="378" text-anchor="middle" font-size="10" fill="#64748B">Jul</text><rect class="bar" style="animation-delay:0.84s" x="206" y="276" width="16" height="84" rx="5" fill="#2F6FD6"/><rect class="bar" style="animation-delay:0.90s" x="224" y="302" width="16" height="58" rx="5" fill="#3CCB8E"/><text x="223" y="378" text-anchor="middle" font-size="10" fill="#64748B">Aug</text><rect class="bar" style="animation-delay:0.96s" x="248" y="226" width="16" height="134" rx="5" fill="#2F6FD6"/><rect class="bar" style="animation-delay:1.02s" x="266" y="272" width="16" height="88" rx="5" fill="#3CCB8E"/><text x="265" y="378" text-anchor="middle" font-size="10" fill="#64748B">Sep</text><rect class="bar" style="animation-delay:1.08s" x="290" y="238" width="16" height="122" rx="5" fill="#2F6FD6"/><rect class="bar" style="animation-delay:1.14s" x="308" y="294" width="16" height="66" rx="5" fill="#3CCB8E"/><text x="307" y="378" text-anchor="middle" font-size="10" fill="#64748B">Oct</text><rect class="bar" style="animation-delay:1.20s" x="332" y="198" width="16" height="162" rx="5" fill="#2F6FD6"/><rect class="bar" style="animation-delay:1.26s" x="350" y="290" width="16" height="70" rx="5" fill="#3CCB8E"/><text x="349" y="378" text-anchor="middle" font-size="10" fill="#64748B">Nov</text>
+    <path class="glow" d="M139 280 L181 265 L223 282 L265 258 L307 245 L349 200" fill="none" stroke="#3CCB8E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <path class="line" d="M139 280 L181 265 L223 282 L265 258 L307 245 L349 200" fill="none" stroke="#1C2B44" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle class="pulse" cx="349" cy="200" r="7" fill="#3CCB8E"/>
+    <circle class="runner" r="6" fill="#1C2B44" stroke="#FFFFFF" stroke-width="2.5" style="offset-path:path('M139 280 L181 265 L223 282 L265 258 L307 245 L349 200')"/>
+    <g class="pop" style="animation-delay:3.00s"><rect x="263" y="186" width="74" height="26" rx="9" fill="#1C2B44"/><text x="300" y="203" text-anchor="middle" font-size="11" font-weight="700" fill="#FFFFFF">+Rs 87,500</text></g>
   </g>
 
   <g class="rise" style="animation-delay:0.30s">
