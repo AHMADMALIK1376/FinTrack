@@ -1,19 +1,15 @@
 {
   "name": "fintrack-backend",
   "version": "1.0.0",
-  "description": "FinTrack REST API (Node.js + Express + PostgreSQL)",
-  "main": "src/server.js",
+  "description": "FinTrack backend: PHP 8 REST API (PDO + PostgreSQL). Node is only used to run the tests.",
+  "main": "router.php",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "start": "php -S localhost:3000 -t ../frontend router.php",
+    "test": "node --test --test-concurrency=1 \"tests/*.test.js\""
   },
   "license": "MIT",
-  "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
+  "devDependencies": {
     "dotenv": "^16.4.5",
-    "express": "^4.21.1",
-    "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1"
   }
 }

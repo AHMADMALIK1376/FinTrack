@@ -5,82 +5,262 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="assets/icon.svg">
 <link href="vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
-<link href="vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
-<div id="navbar"></div>
-<main class="container py-4">
-  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
-    <div><h2 class="mb-0">Dashboard</h2><p class="text-muted-ft mb-0" id="hello"></p></div>
-    <input type="month" id="month" class="form-control" style="max-width:200px">
-  </div>
-  <div id="warnings"></div>
-  <div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3"><div class="ft-stat bg-sky"><div class="label">Total balance</div><div class="value" id="sBalance">–</div></div></div>
-    <div class="col-6 col-lg-3"><div class="ft-stat bg-mint"><div class="label">Income this month</div><div class="value" id="sIncome">–</div></div></div>
-    <div class="col-6 col-lg-3"><div class="ft-stat bg-peach"><div class="label">Expense this month</div><div class="value" id="sExpense">–</div></div></div>
-    <div class="col-6 col-lg-3"><div class="ft-stat bg-lav"><div class="label">Saved this month</div><div class="value" id="sSaving">–</div></div></div>
-  </div>
-  <div class="row g-3 mb-4">
-    <div class="col-lg-7"><div class="ft-card p-4 h-100"><h5>Income vs. expense (last 6 months)</h5><canvas id="trendChart" height="220"></canvas></div></div>
-    <div class="col-lg-5"><div class="ft-card p-4 h-100"><h5>Spending by category</h5><canvas id="catChart" height="220"></canvas><p id="catEmpty" class="empty d-none">No expenses this month yet.</p></div></div>
-  </div>
-  <div class="ft-card p-4">
-    <div class="d-flex justify-content-between align-items-center mb-2"><h5 class="mb-0">Recent transactions</h5><a href="transactions.html" class="btn btn-sm btn-outline-primary">View all</a></div>
-    <div class="table-responsive"><table class="table align-middle mb-0"><tbody id="recent"></tbody></table></div>
-  </div>
-</main>
+<a class="visually-hidden-focusable" href="#content">Skip to content</a>
+<div class="ft-app">
+  <aside class="ft-card ft-side" id="sidebar"></aside>
+  <main class="ft-main" id="content">
+    <header class="ft-top" id="topbar"></header>
+
+    <div class="ft-grid-3">
+      <!-- balance -->
+      <section class="ft-card d-flex flex-column gap-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <h2 class="ft-label">My balance</h2>
+          <a class="ft-link" href="accounts.html">All accounts <span data-i="chevr"></span></a>
+        </div>
+        <div class="flex-grow-1 d-flex flex-column justify-content-end gap-2 pt-3">
+          <p class="ft-muted">Total balance</p>
+          <p class="ft-big" style="font-size:46px" id="balance">–</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2"><span class="ft-pill" id="savedPill"></span><span class="ft-pill" id="accountsPill"></span></div>
+      </section>
+
+      <!-- income -->
+      <section class="ft-card d-flex flex-column gap-3">
+        <div class="d-flex justify-content-between align-items-center"><h2 class="ft-label">My income</h2><span class="ft-muted" style="color:#334155" data-month-label></span></div>
+        <div class="d-flex justify-content-between align-items-end gap-3">
+          <div class="d-flex flex-column gap-2"><p class="ft-muted">Total income</p><p class="ft-big" style="font-size:36px" id="income">–</p></div>
+          <div class="ft-heat" aria-hidden="true" id="heat"></div>
+        </div>
+        <div class="d-flex flex-wrap gap-2"><span class="ft-pill" id="incomeChange"></span><span class="ft-pill" id="incomeCount"></span></div>
+        <div class="ft-split" id="incomeSplit"></div>
+      </section>
+
+      <!-- expense -->
+      <section class="ft-card d-flex flex-column gap-3">
+        <div class="d-flex justify-content-between align-items-center"><h2 class="ft-label">My expense</h2><span class="ft-muted" style="color:#334155" data-month-label></span></div>
+        <div class="d-flex flex-column gap-2"><p class="ft-big" style="font-size:36px" id="expense">–</p><p class="ft-muted">Total expense</p></div>
+        <div class="d-flex flex-wrap gap-2"><span class="ft-pill" id="expenseShare"></span><span class="ft-pill warn d-none" id="overPill"></span></div>
+        <div class="d-flex justify-content-between" style="font-size:11px;color:var(--ft-muted)"><span>0%</span><span>50%</span><span>100%</span></div>
+        <div class="ft-ticks" role="img" id="ticks"></div>
+        <div class="d-flex justify-content-between" style="font-size:13px;color:#334155"><span>Spent so far</span><span class="fw-semibold" id="spentShare"></span></div>
+      </section>
+    </div>
+
+    <div class="ft-row" style="align-items:stretch">
+      <!-- money flow -->
+      <section class="ft-card d-flex flex-column gap-3" style="flex:2 1 560px">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <h2 class="ft-label">Money flow</h2>
+          <div class="d-flex flex-wrap align-items-center gap-3">
+            <span class="ft-legend"><i style="background:var(--ft-brand)"></i>Income</span>
+            <span class="ft-legend"><i style="background:var(--ft-accent)"></i>Expense</span>
+            <span class="ft-legend"><i class="ft-stripe"></i>Room to grow</span>
+            <span class="ft-chip-btn">Last 6 months</span>
+          </div>
+        </div>
+        <div class="ft-flow" role="img" id="flow"></div>
+      </section>
+
+      <!-- budget usage -->
+      <section class="ft-card d-flex flex-column gap-3" style="flex:1 1 340px">
+        <div class="d-flex justify-content-between align-items-center">
+          <h2 class="ft-label">Budget usage</h2>
+          <a class="ft-link" href="budgets.html">Manage budgets <span data-i="arrowr"></span></a>
+        </div>
+        <div id="budgetUsage" class="d-flex flex-column gap-3 flex-grow-1"></div>
+      </section>
+    </div>
+
+    <div class="ft-row">
+      <!-- recent transactions -->
+      <section class="ft-card d-flex flex-column gap-2" style="flex:2 1 560px">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <h2 class="ft-label">Recent transactions</h2>
+          <div class="d-flex align-items-center gap-2">
+            <select class="ft-input" id="recentType" aria-label="Show" style="width:auto;height:38px">
+              <option value="">All types</option><option value="income">Income</option><option value="expense">Expense</option></select>
+            <a class="ft-link p-2" href="transactions.html">View all <span data-i="arrowr"></span></a>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="ft-table">
+            <thead><tr><th>Description</th><th>Date</th><th>Account</th><th>Category</th><th style="text-align:right">Amount</th></tr></thead>
+            <tbody id="recent"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- savings goals -->
+      <section class="ft-card d-flex flex-column gap-3" style="flex:1 1 340px">
+        <div class="d-flex justify-content-between align-items-center">
+          <h2 class="ft-label">Savings goals</h2>
+          <a class="ft-link" href="budgets.html#goals">All goals <span data-i="arrowr"></span></a>
+        </div>
+        <div id="goals" class="d-flex flex-column gap-3"></div>
+        <a href="budgets.html#new-goal" class="ft-dashed" style="min-height:44px;flex-direction:row;border-radius:14px;font-size:14px"><span data-i="plus"></span>New goal</a>
+      </section>
+    </div>
+  </main>
+</div>
+<nav class="ft-tabbar" id="tabbar" aria-label="Main"></nav>
+
 <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/icons.js"></script>
 <script src="js/api.js"></script>
-<script src="vendor/chartjs/chart.umd.min.js"></script>
+<script src="js/layout.js"></script>
 <script>
-  auth.requireLogin();
-  renderNavbar('dashboard.html');
-  document.getElementById('hello').textContent = 'Welcome back, ' + (auth.user?.full_name || '');
+  shell.render('dashboard.html', {
+    title: 'Dashboard', sub: 'Track, plan and grow your money',
+    actions: shell.monthPicker('month') + `<a class="ft-btn" href="transactions.html#add">${icon('plus', 18)}Add transaction</a>`,
+  });
+  document.querySelectorAll('[data-i]').forEach((el) => { el.outerHTML = icon(el.dataset.i, 16); });
   const monthInput = document.getElementById('month');
-  monthInput.value = thisMonth();
-  let trendChart, catChart;
-  const palette = ['#2F6FD6', '#3CCB8E', '#F2A65A', '#7A6BC9', '#E5707E', '#5BC0DE', '#1C2B44', '#B9D2F0'];
+  let recentAll = [], accountTypes = {};
+
+  function renderRecent() {
+    const type = document.getElementById('recentType').value;
+    const rows = recentAll.filter((t) => !type || t.type === type).slice(0, 6);
+    document.getElementById('recent').innerHTML = rows.map((t) => `<tr>
+      <td><span class="who"><span class="ft-cat ${t.type}">${icon(catIcon(t.category), 20)}</span><b>${esc(t.description || t.category)}</b></span></td>
+      <td style="color:#475569">${dateLabel(t.txn_date)}</td>
+      <td><span class="d-inline-flex align-items-center gap-2" style="color:#334155">${icon(accIcon(accountTypes[t.account_id]), 16)}${esc(t.account_name)}</span></td>
+      <td><span class="ft-tag ${t.type}">${esc(t.category)}</span></td>
+      <td style="text-align:right" class="amt-${t.type}">${signed(t)}</td></tr>`).join('')
+      || `<tr><td colspan="5" class="ft-empty">No transactions in ${monthName(monthInput.value)} yet. <a href="transactions.html#add">Add one</a></td></tr>`;
+  }
 
   async function load() {
-    const m = monthInput.value;
-    const [d, recent] = await Promise.all([api('/reports/dashboard?month=' + m), api('/transactions?month=' + m)]);
-    sBalance.textContent = money(d.total_balance);
-    sIncome.textContent = money(d.total_income);
-    sExpense.textContent = money(d.total_expense);
-    sSaving.textContent = money(d.net_saving);
+    const m = monthInput.value || thisMonth();
+    document.querySelectorAll('[data-month-label]').forEach((el) => { el.textContent = monthName(m); });
+    const [d, txns, budgets, goals, accounts] = await Promise.all([
+      api('/reports/dashboard?month=' + m), api('/transactions?month=' + m), api('/budgets?month=' + m), api('/goals'), api('/accounts')]);
+    const income = Number(d.total_income), expense = Number(d.total_expense), saved = Number(d.net_saving);
 
-    warnings.innerHTML = d.budget_warnings.map((w) => `<div class="alert alert-warning d-flex align-items-center gap-2">
-      <i class="bi bi-exclamation-triangle-fill"></i><div><b>${esc(w.category)}</b> is over budget by <b>${money(w.over_by)}</b>
-      (spent ${money(w.spent)} of ${money(w.limit_amount)}).</div></div>`).join('');
+    // balance card
+    document.getElementById('balance').innerHTML = moneyBig(d.total_balance);
+    document.getElementById('savedPill').innerHTML = saved >= 0
+      ? `${icon('up', 14)}Saved this month <b style="color:var(--ft-green)">+${money(saved)}</b>`
+      : `${icon('down', 14)}Spent more than earned <b style="color:var(--ft-red)">−${money(-saved)}</b>`;
+    document.getElementById('accountsPill').innerHTML = `${icon('wallet', 14)}${accounts.length} account${accounts.length === 1 ? '' : 's'}`;
 
-    trendChart?.destroy();
-    trendChart = new Chart(document.getElementById('trendChart'), {
-      type: 'bar',
-      data: { labels: d.trend.map((t) => t.label), datasets: [
-        { label: 'Income', data: d.trend.map((t) => t.total_income), backgroundColor: '#3CCB8E', borderRadius: 8 },
-        { label: 'Expense', data: d.trend.map((t) => t.total_expense), backgroundColor: '#F2A65A', borderRadius: 8 }] },
-      options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } },
-    });
+    // income card: change vs last month, entry count, top three sources, a small activity grid
+    const incomeTx = txns.filter((t) => t.type === 'income');
+    const last = d.trend.find((t) => t.label === new Date(`${prevMonth(m)}-01T00:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
+    document.getElementById('income').innerHTML = moneyBig(income);
+    const before = last ? Number(last.total_income) : 0;
+    const change = before > 0 ? Math.round(((income - before) / before) * 100) : null;
+    document.getElementById('incomeChange').innerHTML = change === null
+      ? `${icon('calendar', 14)}First month with income`
+      : `${icon(change >= 0 ? 'up' : 'down', 14)}<b style="color:${change >= 0 ? 'var(--ft-green)' : 'var(--ft-red)'}">${change >= 0 ? '+' : ''}${change}%</b> vs ${monthName(prevMonth(m)).split(' ')[0]}`;
+    document.getElementById('incomeCount').innerHTML = `${icon('calendar', 14)}${incomeTx.length} entr${incomeTx.length === 1 ? 'y' : 'ies'}`;
+    const sources = Object.entries(incomeTx.reduce((acc, t) => ({ ...acc, [t.category]: (acc[t.category] || 0) + Number(t.amount) }), {}))
+      .sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const colours = ['var(--ft-brand)', 'var(--ft-accent)', '#CBD5E1'];
+    document.getElementById('incomeSplit').innerHTML = sources.length
+      ? sources.map(([c, v], i) => `<div style="border-left-color:${colours[i]}"><p class="ft-muted" style="margin:0">${esc(c)}</p><p>${moneyShort(v)}</p></div>`).join('')
+      : '<p class="ft-muted" style="grid-column:1/-1">No income recorded this month.</p>';
+    // activity grid: 4 weeks x 5 slots, darker where more income came in
+    const weeks = [0, 0, 0, 0, 0];
+    incomeTx.forEach((t) => { weeks[Math.min(4, Math.floor((Number(t.txn_date.slice(8, 10)) - 1) / 7))] += Number(t.amount); });
+    const top = Math.max(...weeks, 1);
+    document.getElementById('heat').innerHTML = weeks.map((w) => {
+      const level = Math.round((w / top) * 4);
+      return `<span>${[3, 2, 1, 0].map((r) => `<i style="background:${level === 4 && r === 0 ? 'var(--ft-brand)' : 'var(--ft-accent)'};opacity:${r < level ? [.3, .5, .75, 1][r] : .12}"></i>`).join('')}</span>`;
+    }).join('');
 
-    catChart?.destroy();
-    catEmpty.classList.toggle('d-none', d.by_category.length > 0);
-    catChart = new Chart(document.getElementById('catChart'), {
-      type: 'doughnut',
-      data: { labels: d.by_category.map((c) => c.category), datasets: [{ data: d.by_category.map((c) => c.total_spent), backgroundColor: palette }] },
-      options: { cutout: '62%', plugins: { legend: { position: 'bottom' } } },
-    });
+    // expense card: share of income as a tick meter, over-budget total
+    const share = pct(expense, income);
+    document.getElementById('expense').innerHTML = moneyBig(expense);
+    document.getElementById('expenseShare').innerHTML = `${icon('down', 14)}${income ? share + '% of income' : 'No income yet'}`;
+    const over = d.budget_warnings.reduce((s, w) => s + Number(w.over_by), 0);
+    const overPill = document.getElementById('overPill');
+    overPill.classList.toggle('d-none', !over);
+    overPill.innerHTML = `${icon('alert', 14)}${money(over)} over budget`;
+    const lit = Math.round(Math.min(share, 100) * 30 / 100);
+    const ticks = document.getElementById('ticks');
+    ticks.setAttribute('aria-label', `${share}% of income spent`);
+    ticks.innerHTML = Array.from({ length: 30 }, (_, i) => `<i style="opacity:${i < lit ? 1 : .22}${share > 100 ? ';background:var(--ft-ink)' : ''}"></i>`).join('');
+    document.getElementById('spentShare').textContent = income ? `${share}% of income` : money(expense);
 
-    document.getElementById('recent').innerHTML = recent.slice(0, 6).map((t) => `<tr>
-      <td>${esc(t.txn_date.slice(0, 10))}</td><td>${esc(t.description || '')}</td>
-      <td><span class="badge text-bg-light">${esc(t.category)}</span></td><td class="text-muted-ft">${esc(t.account_name)}</td>
-      <td class="text-end amount-${t.type}">${t.type === 'income' ? '+' : '−'}${money(t.amount)}</td></tr>`).join('')
-      || '<tr><td class="empty">No transactions this month.</td></tr>';
+    // money flow: last 6 months, income and expense bars over a striped "room to grow" track
+    // always six months, oldest first; months with no entries show as empty
+    const trend = [];
+    for (let i = 5, ym = m; i >= 0; i--) {
+      const key = (() => { let x = m; for (let k = 0; k < i; k++) x = prevMonth(x); return x; })();
+      const label = new Date(`${key}-01T00:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      trend.push(d.trend.find((t) => t.label === label) || { label, total_income: 0, total_expense: 0 });
+    }
+    const max = Math.max(...trend.map((t) => Math.max(Number(t.total_income), Number(t.total_expense))), 1) * 1.38;
+    const flow = document.getElementById('flow');
+    flow.setAttribute('aria-label', 'Income and expense by month: ' + trend.map((t) => `${t.label} income ${money(t.total_income)}, expense ${money(t.total_expense)}`).join('; '));
+    flow.innerHTML = trend.map((t, i) => {
+      const inc = Number(t.total_income) / max * 100, exp = Number(t.total_expense) / max * 100;
+      const isLast = i === trend.length - 1;
+      const net = Number(t.total_income) - Number(t.total_expense);
+      return `<div class="col ${isLast ? 'last' : ''}" title="${esc(t.label)}: income ${money(t.total_income)}, expense ${money(t.total_expense)}">
+        <div class="bars">
+          <div class="ft-stripe" style="height:${Math.min(100, Math.max(inc, exp) + 12)}%"></div>
+          ${(exp > inc ? [['exp', exp], ['inc', inc]] : [['inc', inc], ['exp', exp]]).map(([c, h]) => `<div class="${c}" style="height:${h}%"></div>`).join('')}
+          ${isLast ? `<div class="tip" style="bottom:calc(${Math.max(inc, exp)}% + 14px)"><small><i style="width:8px;height:8px;border-radius:2px;background:var(--ft-accent);display:inline-block"></i>${esc(t.label.split(' ')[0])} · ${net >= 0 ? 'saved' : 'overspent'}</small><b>${money(Math.abs(net))}</b></div>` : ''}
+        </div>
+        <span class="m">${esc(t.label.split(' ')[0])}</span></div>`;
+    }).join('');
+
+    // budget usage: overall %, plus the three biggest budgets as blocks
+    const usage = document.getElementById('budgetUsage');
+    if (!budgets.length) {
+      usage.innerHTML = `<p class="ft-empty my-auto">No budgets for ${monthName(m)} yet.<br><a href="budgets.html">Set a monthly budget</a> and Shan will warn you before you overspend.</p>`;
+    } else {
+      const limit = budgets.reduce((s, b) => s + Number(b.limit_amount), 0);
+      const spent = budgets.reduce((s, b) => s + Number(b.spent), 0);
+      const total = pct(spent, limit);
+      const overList = budgets.filter((b) => Number(b.spent) > Number(b.limit_amount));
+      const okList = budgets.filter((b) => Number(b.spent) <= Number(b.limit_amount));
+      const message = overList.length
+        ? `<b style="color:var(--ft-text)">${total >= 100 ? 'Over your limit.' : 'Almost at your limit.'}</b> ${esc(overList.map((b) => b.category).join(', '))} ${overList.length === 1 ? 'has' : 'have'} gone over${okList.length ? `; ${esc(okList.slice(0, 2).map((b) => b.category).join(' and '))} ${okList.length === 1 ? 'is' : 'are'} on track` : ''}.`
+        : `<b style="color:var(--ft-text)">${total >= 80 ? 'Close to your limit.' : 'Nicely on track.'}</b> Every budget is within its limit this month.`;
+      const top3 = [...budgets].sort((a, b) => pct(b.spent, b.limit_amount) - pct(a.spent, a.limit_amount)).slice(0, 3);
+      const styles = [['var(--ft-ink)', '#fff'], ['var(--ft-accent)', 'var(--ft-text)'], ['var(--ft-brand)', '#fff']];
+      usage.innerHTML = `<div class="d-flex justify-content-between align-items-start gap-3">
+          <div class="d-flex flex-column gap-2"><p class="ft-big" style="font-size:64px">${total}<span style="font-size:30px;color:#9AA3B2">%</span></p>
+          <span class="ft-pill">${icon('pie', 14)}${money(spent)} of ${money(limit)}</span></div>
+          <p class="mt-1 mb-0" style="font-size:13px;color:var(--ft-muted);max-width:170px;line-height:1.5">${message}</p></div>
+        <div class="ft-blocks">${top3.map((b, i) => {
+          const p = pct(b.spent, b.limit_amount);
+          const isOver = Number(b.spent) > Number(b.limit_amount);
+          const [bg, fg] = styles[i];
+          return `<div class="ft-block"><div class="cap" style="background:${bg}"></div>
+            <div class="box" style="background:${bg};color:${fg};height:${Math.max(112, Math.min(190, 100 + p * .7))}px">
+              <div><p class="pct">${p}<small>%</small></p><p class="name">${esc(b.category)}</p></div>
+              <div class="d-flex flex-column gap-1">${isOver ? `<span class="ft-over-tag">${icon('alert', 12)}Over</span>` : ''}<p class="of">${moneyShort(b.spent)} / ${moneyShort(b.limit_amount).replace('Rs ', '')}</p></div>
+            </div></div>`;
+        }).join('')}</div>`;
+    }
+
+    // recent transactions and goals
+    recentAll = txns;
+    accountTypes = Object.fromEntries(accounts.map((a) => [a.account_id, a.account_type]));
+    renderRecent();
+    document.getElementById('goals').innerHTML = goals.slice(0, 2).map((g) => {
+      const p = Math.min(100, pct(g.saved_amount, g.target_amount));
+      return `<div class="ft-goal-mini">
+        <div class="d-flex align-items-center gap-3"><span class="ft-goal-icon">${icon(/laptop|computer|phone/i.test(g.goal_name) ? 'laptop' : /emergency|fund|safe/i.test(g.goal_name) ? 'shield' : 'target', 20)}</span>
+          <div class="flex-grow-1" style="min-width:0"><p class="m-0 fw-semibold text-truncate" style="font-size:14px">${esc(g.goal_name)}</p><p class="ft-muted mt-1">${g.deadline ? 'By ' + dateLabel(g.deadline) : 'No deadline'}</p></div>
+          <span class="ft-big" style="font-size:20px">${p}%</span></div>
+        <div class="ft-bar ft-stripe" role="img" aria-label="${p}% saved"><div style="width:${p}%"></div></div>
+        <p class="ft-muted"><b style="color:var(--ft-text)">${money(g.saved_amount)}</b> of ${money(g.target_amount)}</p></div>`;
+    }).join('') || '<p class="ft-empty">No savings goals yet. Set one and watch it fill up.</p>';
   }
-  monthInput.addEventListener('change', load);
-  load().catch((e) => toast(e.message, 'danger'));
+
+  monthInput.addEventListener('change', attempt(load));
+  document.getElementById('recentType').addEventListener('change', renderRecent);
+  attempt(load)();
 </script>
 </body>
 </html>

@@ -3,58 +3,140 @@
 <head>
 <title>FinTrack · Log in</title>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="FinTrack: record income and expenses, set monthly budgets and reach your savings goals.">
 <link rel="icon" href="assets/icon.svg">
 <link href="vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
-<link href="vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
-<div class="auth-wrap">
-  <div class="auth-side">
-    <img src="assets/logo.png" alt="FinTrack logo" class="mb-4">
-    <h1 class="display-6 mb-3">Know where every rupee goes.</h1>
-    <p class="lead text-muted-ft">Record income and expenses, set monthly budgets and reach your savings goals, all in one place.</p>
-  </div>
-  <div class="auth-form">
-    <div class="ft-card p-4 p-md-5">
-      <ul class="nav nav-pills nav-fill mb-4" role="tablist">
-        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#loginTab">Log in</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#registerTab">Register</button></li>
-      </ul>
-      <div class="tab-content">
-        <form id="loginTab" class="tab-pane fade show active">
-          <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required></div>
-          <div class="mb-4"><label class="form-label">Password</label><input type="password" name="password" class="form-control" required></div>
-          <button class="btn btn-primary w-100 py-2">Log in</button>
-          <p class="small text-muted-ft mt-3 mb-0">Demo: demo@fintrack.pk / demo1234</p>
-        </form>
-        <form id="registerTab" class="tab-pane fade">
-          <div class="mb-3"><label class="form-label">Full name</label><input name="full_name" class="form-control" required></div>
-          <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required></div>
-          <div class="mb-4"><label class="form-label">Password</label><input type="password" name="password" minlength="6" class="form-control" required></div>
-          <button class="btn btn-primary w-100 py-2">Create account</button>
-        </form>
-      </div>
-      <div id="authError" class="alert alert-danger mt-3 d-none"></div>
+<div class="ft-auth">
+  <!-- left: the animated money story (design "Login B") -->
+  <section class="ft-auth-art" aria-label="What FinTrack does">
+    <div class="glow1" aria-hidden="true"></div><div class="glow2" aria-hidden="true"></div>
+    <div class="ft-art-logo" role="img" aria-label="FinTrack"><img src="assets/icon-on-dark.svg" alt=""><span class="ft-wordmark" aria-hidden="true">Fin<span>Track</span></span></div>
+    <img src="assets/login-animation.svg" width="620" height="420"
+         alt="Shan the snow leopard waving beside a money-flow chart: income and expense bars growing month by month, a savings goal filling up, and notifications for a salary, a budget alert and a transfer">
+    <div class="chips" id="chips"></div>
+    <p class="credit">CSC332L Advance Database Management Systems Lab · Iqra University</p>
+  </section>
+
+  <!-- right: logo, heading, and the log-in / create-account form -->
+  <div class="ft-card ft-auth-form">
+    <div class="inner">
+      <h1>Know where every rupee goes.</h1>
+      <p class="lead-text">Record income and expenses, set monthly budgets and reach your savings goals, all in one place.</p>
     </div>
+
+    <form class="inner" id="authForm" novalidate>
+      <div class="ft-auth-head">
+        <div style="min-width:0">
+          <h2 id="formTitle">Log in</h2>
+          <p class="ft-muted mt-1" style="font-size:15px" id="formSub">Welcome back to FinTrack.</p>
+        </div>
+      </div>
+
+      <div class="ft-seg d-flex" role="tablist" aria-label="Log in or create an account">
+        <button type="button" role="tab" id="tabLogin" aria-selected="true">Log in</button>
+        <button type="button" role="tab" id="tabSignup" aria-selected="false">Create account</button>
+      </div>
+
+      <div class="ft-field d-none" id="nameField">
+        <label for="full_name">Full name</label>
+        <div class="ft-inbox"><span id="nameIcon"></span><input id="full_name" name="full_name" autocomplete="name" placeholder="e.g. Ayesha Khan" maxlength="100"></div>
+      </div>
+      <div class="ft-field">
+        <label for="email">Email</label>
+        <div class="ft-inbox"><span id="mailIcon"></span><input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required></div>
+      </div>
+      <div class="ft-field">
+        <label for="password">Password</label>
+        <div class="ft-inbox"><span id="lockIcon"></span><input id="password" name="password" type="password" autocomplete="current-password" required>
+          <button type="button" id="showPw" aria-label="Show password" aria-pressed="false"></button></div>
+        <p class="ft-muted d-none" id="pwHint" style="margin-top:2px">Use at least 6 characters. We store only a secure hash of it.</p>
+      </div>
+      <label class="ft-check" id="rememberRow"><input type="checkbox" id="remember" checked>Keep me logged in on this computer</label>
+      <p class="ft-muted d-none" id="starterNote" style="font-size:13px">We'll start you with a Cash account and common categories.</p>
+
+      <div class="ft-error d-none" id="authError" role="alert"></div>
+      <button class="ft-submit" id="submitBtn"><span id="submitText">Log in</span><span id="submitIcon"></span></button>
+      <div class="ft-note" id="demoNote"><span id="helpIcon"></span><span>Demo account: <b style="margin:0">demo@fintrack.pk</b> / <b style="margin:0">demo1234</b></span></div>
+    </form>
   </div>
 </div>
 <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/icons.js"></script>
 <script src="js/api.js"></script>
 <script>
-  if (auth.token) location.href = 'dashboard.html';
-  const errBox = document.getElementById('authError');
-  async function submit(form, path) {
-    errBox.classList.add('d-none');
-    try {
-      const data = await api(path, { method: 'POST', body: Object.fromEntries(new FormData(form)) });
-      auth.save(data);
-      location.href = 'dashboard.html';
-    } catch (e) { errBox.textContent = e.message; errBox.classList.remove('d-none'); }
+  if (auth.token) location.replace('dashboard.html');
+
+  // icons
+  chips.innerHTML = [['swap', 'Track every rupee'], ['pie', 'Budget each month'], ['target', 'Grow your savings']]
+    .map(([i, t]) => `<span>${icon(i, 16)}${t}</span>`).join('');
+  nameIcon.innerHTML = icon('help', 18); mailIcon.innerHTML = icon('mail', 18); lockIcon.innerHTML = icon('lock', 18);
+  showPw.innerHTML = icon('eye', 18); submitIcon.innerHTML = icon('arrowr', 18); helpIcon.innerHTML = icon('help', 18);
+
+  // the form text for each tab
+  const MODES = {
+    login: { title: 'Log in', sub: 'Welcome back to FinTrack.', button: 'Log in', path: '/auth/login' },
+    signup: { title: 'Create your account', sub: 'It takes less than a minute.', button: 'Create my account', path: '/auth/register' },
+  };
+  let mode = 'login';
+
+  function setMode(next) {
+    mode = next;
+    const m = MODES[mode];
+    const signup = mode === 'signup';
+    formTitle.textContent = m.title; formSub.textContent = m.sub; submitText.textContent = m.button;
+    tabLogin.setAttribute('aria-selected', !signup); tabSignup.setAttribute('aria-selected', signup);
+    nameField.classList.toggle('d-none', !signup);
+    pwHint.classList.toggle('d-none', !signup);
+    starterNote.classList.toggle('d-none', !signup);
+    demoNote.classList.toggle('d-none', signup);
+    full_name.required = signup;
+    password.autocomplete = signup ? 'new-password' : 'current-password';
+    password.placeholder = signup ? 'At least 6 characters' : '';
+    authError.classList.add('d-none');
+    history.replaceState(null, '', signup ? '#signup' : '#');
+    (signup ? full_name : email).focus();
   }
-  document.getElementById('loginTab').addEventListener('submit', (e) => { e.preventDefault(); submit(e.target, '/auth/login'); });
-  document.getElementById('registerTab').addEventListener('submit', (e) => { e.preventDefault(); submit(e.target, '/auth/register'); });
+  tabLogin.addEventListener('click', () => setMode('login'));
+  tabSignup.addEventListener('click', () => setMode('signup'));
+
+  showPw.addEventListener('click', () => {
+    const show = password.type === 'password';
+    password.type = show ? 'text' : 'password';
+    showPw.setAttribute('aria-pressed', show);
+    showPw.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  });
+
+  function showError(message) {
+    authError.innerHTML = `${icon('alert', 18)}<span>${esc(message)}</span>`;
+    authError.classList.remove('d-none');
+  }
+
+  authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const body = { email: email.value.trim(), password: password.value };
+    if (mode === 'signup') body.full_name = full_name.value.trim();
+    if (mode === 'signup' && !body.full_name) return showError('Please enter your name.');
+    if (!body.email || !email.checkValidity()) return showError('Please enter a valid email address.');
+    if (mode === 'signup' && body.password.length < 6) return showError('Your password needs at least 6 characters.');
+    if (!body.password) return showError('Please enter your password.');
+    authError.classList.add('d-none');
+    submitBtn.disabled = true;
+    try {
+      const data = await api(MODES[mode].path, { method: 'POST', body });
+      auth.save(data, remember.checked);
+      location.href = 'dashboard.html';
+    } catch (err) {
+      showError(err.message);
+      submitBtn.disabled = false;
+    }
+  });
+
+  setMode(location.hash === '#signup' ? 'signup' : 'login');
 </script>
 </body>
 </html>

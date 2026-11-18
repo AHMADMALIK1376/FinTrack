@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 190" width="160" height="190" role="img" aria-label="Shan the Snow Leopard, the FinTrack mascot, in a blue running vest with the number 01"><style>
+.shan{transform-box:fill-box;transform-origin:50% 100%;animation:shan-bob 3s ease-in-out infinite}
+.shan .eyes{transform-box:fill-box;transform-origin:center;animation:shan-blink 4.5s ease-in-out infinite}
+.shan .wave{transform-box:fill-box;transform-origin:0% 100%;animation:shan-wave 1.6s ease-in-out infinite}
+.shan .tail{transform-box:fill-box;transform-origin:0% 100%;animation:shan-tail 2.8s ease-in-out infinite}
+.shan-cheer{transform-box:fill-box;transform-origin:50% 100%;animation:shan-cheer 9s ease-out 2.6s infinite both}
+.shan-say{transform-box:fill-box;transform-origin:20% 100%;animation:shan-say 9s cubic-bezier(.2,.8,.2,1) 4.6s infinite both}
+@keyframes shan-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes shan-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes shan-wave{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(14deg)}}
+@keyframes shan-tail{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(5deg)}}
+@keyframes shan-cheer{0%,8%,100%{transform:translateY(0) scale(1)}3%{transform:translateY(-16px) scale(1.04)}5%{transform:translateY(0) scale(1.06,.94)}}
+@keyframes shan-say{0%{transform:scale(0);opacity:0}6%{transform:scale(1.06);opacity:1}9%{transform:scale(1)}68%{transform:scale(1);opacity:1}76%,100%{transform:scale(.8);opacity:0}}
+@media (prefers-reduced-motion: reduce){.shan,.shan *,.shan-cheer,.shan-say{animation:none!important}}
+</style><g class="shan">
+  <ellipse cx="80" cy="184" rx="42" ry="5" fill="#0F172A" opacity=".12"/>
+  <g class="tail">
+    <path d="M112 156 C140 152 150 126 138 104 C132 94 142 86 148 94" stroke="#E2E8F0" stroke-width="16" fill="none" stroke-linecap="round"/>
+    <path d="M112 156 C140 152 150 126 138 104 C132 94 142 86 148 94" stroke="#94A3B8" stroke-width="16" fill="none" stroke-linecap="butt" stroke-dasharray="3 12" stroke-dashoffset="-6"/>
+  </g>
+  <path d="M64 156 L62 176 M96 156 L98 176" stroke="#E2E8F0" stroke-width="12" stroke-linecap="round"/>
+  <ellipse cx="60" cy="178" rx="12" ry="6" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+  <ellipse cx="100" cy="178" rx="12" ry="6" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+  <path d="M50 128 Q50 104 80 104 Q110 104 110 128 L108 158 Q80 168 52 158 Z" fill="#EEF2F7"/>
+  <path d="M54 118 L106 118 L108 150 Q80 160 52 150 Z" fill="#2F6FD6"/>
+  <path d="M54 126 L106 126" stroke="#3CCB8E" stroke-width="3"/>
+  <rect x="68" y="132" width="24" height="16" rx="4" fill="#FFFFFF"/>
+  <text x="80" y="144" text-anchor="middle" font-size="11" font-weight="800" fill="#1C2B44" font-family="Inter, system-ui, sans-serif">01</text>
+  <path d="M50 124 Q36 132 38 146" stroke="#E2E8F0" stroke-width="11" fill="none" stroke-linecap="round"/>
+  <circle cx="38" cy="148" r="6.5" fill="#EEF2F7"/>
+  <path d="M110 124 Q124 132 122 146" stroke="#E2E8F0" stroke-width="11" fill="none" stroke-linecap="round"/><circle cx="122" cy="148" r="6.5" fill="#EEF2F7"/>
+  <circle cx="50" cy="40" r="13" fill="#EEF2F7"/><circle cx="50" cy="40" r="7" fill="#FFB8C6"/>
+  <circle cx="110" cy="40" r="13" fill="#EEF2F7"/><circle cx="110" cy="40" r="7" fill="#FFB8C6"/>
+  <ellipse cx="80" cy="70" rx="44" ry="40" fill="#F4F7FB"/>
+  <circle cx="52" cy="50" r="4.5" fill="none" stroke="#64748B" stroke-width="2.4" stroke-dasharray="18.9 9.0"/><circle cx="66" cy="38" r="4" fill="none" stroke="#64748B" stroke-width="2.4" stroke-dasharray="16.8 8.0"/><circle cx="96" cy="38" r="4" fill="none" stroke="#64748B" stroke-width="2.4" stroke-dasharray="16.8 8.0"/><circle cx="110" cy="52" r="4.5" fill="none" stroke="#64748B" stroke-width="2.4" stroke-dasharray="18.9 9.0"/><circle cx="46" cy="72" r="3.5" fill="none" stroke="#64748B" stroke-width="2.4" stroke-dasharray="14.7 7.0"/><circle cx="114" cy="74" r="3.5" fill="none" stroke="#64748B" stroke-width="2.4" stroke-dasharray="14.7 7.0"/><circle cx="80" cy="32" r="3.5" fill="none" stroke="#64748B" stroke-width="2.4" stroke-dasharray="14.7 7.0"/>
+  <ellipse cx="80" cy="86" rx="20" ry="15" fill="#FFFFFF"/>
+  <g class="eyes"><ellipse cx="63" cy="66" rx="6" ry="7.5" fill="#1C2B44"/><circle cx="65" cy="63.5" r="2.2" fill="#FFFFFF"/><ellipse cx="97" cy="66" rx="6" ry="7.5" fill="#1C2B44"/><circle cx="99" cy="63.5" r="2.2" fill="#FFFFFF"/></g>
+  <ellipse cx="54" cy="80" rx="5" ry="3" fill="#FF8FA3" opacity=".55"/><ellipse cx="106" cy="80" rx="5" ry="3" fill="#FF8FA3" opacity=".55"/>
+  <path d="M74 80 L86 80 L80 87 Z" fill="#FF8FA3"/>
+  <path d="M80 87 Q80 93 73 94 M80 87 Q80 93 87 94" stroke="#1C2B44" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <path d="M64 86 L50 84 M64 90 L50 92 M96 86 L110 84 M96 90 L110 92" stroke="#94A3B8" stroke-width="1.6" stroke-linecap="round"/>
+</g></svg>
