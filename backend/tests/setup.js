@@ -133,4 +133,11 @@ async function startPhpServer() {
   throw new Error(`The PHP server did not start. Is PHP installed with pdo_pgsql? Output:\n${log}`);
 }
 
-module.exports = { resetDatabase, runSqlFile, adminQuery, startPhpServer, DATABASE_DIR };
+/** A connection as the website's own account (PGUSER, normally fintrack_app); the caller ends it. */
+async function appClient() {
+  const client = new Client({ ...connection(process.env.PGDATABASE), user: process.env.PGUSER, password: process.env.PGPASSWORD });
+  await client.connect();
+  return client;
+}
+
+module.exports = { resetDatabase, runSqlFile, adminQuery, appClient, startPhpServer, DATABASE_DIR };

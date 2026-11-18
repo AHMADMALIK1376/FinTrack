@@ -102,9 +102,29 @@ describe('accounts, transactions and transfers', () => {
     assert.strictEqual(dup.status, 400);
     const bad = await call('POST', '/api/accounts', { token: u.token, body: { account_name: 'Gold', account_type: 'crypto' } });
     assert.strictEqual(bad.status, 400);
+    assert.strictEqual(bad.body.error, 'Choose an account type: bank, cash, wallet or card.', 'DB-11 the enum error gets a plain message');
     const rename = await call('PUT', `/api/accounts/${add.body.account_id}`, { token: u.token, body: { account_name: 'HBL Bank', account_type: 'bank' } });
     assert.strictEqual(rename.body.account_name, 'HBL Bank');
     assert.strictEqual((await call('DELETE', `/api/accounts/${add.body.account_id}`, { token: u.token })).status, 204);
+  });
+
+  test('ACC-01 rename a category; duplicates and the Transfer category are refused', async () => {
+    const u = await newUser('rename');
+    const food = u.cat('Food');
+    const renamed = await call('PUT', `/api/categories/${food}`, { token: u.token, body: { name: 'Groceries' } });
+    assert.strictEqual(renamed.status, 200);
+    assert.strictEqual(renamed.body.name, 'Groceries');
+    assert.strictEqual(renamed.body.type, 'expense', 'the type does not change');
+    const dup = await call('PUT', `/api/categories/${food}`, { token: u.token, body: { name: 'Rent' } });
+    assert.strictEqual(dup.status, 400);
+    assert.match(dup.body.error, /already have a category called "Rent"/);
+    const reserved = await call('PUT', `/api/categories/${food}`, { token: u.token, body: { name: 'transfer' } });
+    assert.strictEqual(reserved.status, 400);
+    const empty = await call('PUT', `/api/categories/${food}`, { token: u.token, body: { name: '  ' } });
+    assert.strictEqual(empty.status, 400);
+    const other = await newUser('rename-other');
+    const stranger = await call('PUT', `/api/categories/${food}`, { token: other.token, body: { name: 'Mine now' } });
+    assert.strictEqual(stranger.status, 404, 'SEC-01 another user cannot rename it');
   });
 
   test('DB-02 a category that has transactions cannot be deleted, with a plain message', async () => {
@@ -349,3 +369,33 @@ describe('activity log and database role', () => {
   });
 });
 
+describe('too many wrong passwords (SEC-05)', () => {
+  const email = 'locked@test.pk';
+  before(async () => {
+    await adminQuery('DELETE FROM login_attempts');
+    await call('POST', '/api/auth/register', { body: { full_name: 'Locked Out', email, password: 'right-password' } });
+  });
+  after(() => adminQuery('DELETE FROM login_attempts'));
+
+  test('SEC-05 after 5 wrong passwords in 10 minutes, log-in is refused for 10 minutes', async () => {
+    for (let i = 1; i <= 5; i++) {
+      const wrong = await call('POST', '/api/auth/login', { body: { email, password: 'wrong' + i } });
+      assert.strictEqual(wrong.status, 401, `wrong password ${i} gets the normal message`);
+    }
+    const sixth = await call('POST', '/api/auth/login', { body: { email, password: 'wrong6' } });
+    assert.strictEqual(sixth.status, 429);
+    assert.strictEqual(sixth.body.error, 'Too many wrong passwords from this computer. Please try again in 10 minutes.');
+    const right = await call('POST', '/api/auth/login', { body: { email, password: 'right-password' } });
+    assert.strictEqual(right.status, 429, 'even the right password waits, so guessing cannot continue');
+
+    const { rows } = await adminQuery('SELECT COUNT(*)::int AS n, MIN(host(ip_address)) AS ip FROM login_attempts');
+    assert.strictEqual(rows[0].n, 5, 'only the 5 checked failures are stored; refused tries are not');
+    assert.ok(['127.0.0.1', '::1'].includes(rows[0].ip));
+  });
+
+  test('SEC-05 once the 10 minutes have passed, log-in works again', async () => {
+    await adminQuery("UPDATE login_attempts SET attempted_at = attempted_at - INTERVAL '11 minutes'");
+    const right = await call('POST', '/api/auth/login', { body: { email, password: 'right-password' } });
+    assert.strictEqual(right.status, 200);
+  });
+});

@@ -91,6 +91,9 @@ FinTrack/
 │   ├── 04_seed.sql            sample data
 │   ├── 05_audit.sql           audit log table and trigger
 │   ├── 06_roles.sql           fintrack_app and fintrack_report roles
+│   ├── 07_types.sql           money_pkr domain, account_kind and category_kind enums
+│   ├── 08_login_attempts.sql  refuse a computer after 5 wrong passwords in 10 minutes
+│   ├── demo/                  two-window pgAdmin demo: transfers at the same moment
 │   └── tests/                 database tests (run in pgAdmin or with npm test)
 ├── backend/               PHP REST API
 │   ├── .env.example           copy to .env and fill in
@@ -128,7 +131,9 @@ FinTrack/
 
 1. Open pgAdmin 4, right-click **Databases → Create → Database…** and name it `fintrack`.
 2. Select `fintrack`, open **Tools → Query Tool**.
-3. Open and run (F5) each file from the `database/` folder **in order**: `01_schema.sql`, `02_triggers.sql`, `03_views_functions.sql`, `04_seed.sql` (sample data), `05_audit.sql` (audit log) and `06_roles.sql` (the `fintrack_app` and `fintrack_report` roles).
+3. Open and run (F5) each file from the `database/` folder **in order**: `01_schema.sql`, `02_triggers.sql`, `03_views_functions.sql`, `04_seed.sql` (sample data), `05_audit.sql` (audit log), `06_roles.sql` (the `fintrack_app` and `fintrack_report` roles), `07_types.sql` (FinTrack's own data types) and `08_login_attempts.sql` (log-in limit).
+
+**Already have a `fintrack` database from an earlier step?** Run just the new files: `03_views_functions.sql` (the transfer now locks rows), then `07_types.sql` and `08_login_attempts.sql`. Your data stays.
 
 Or from a terminal:
 
@@ -173,12 +178,12 @@ All routes except `/api/auth/*` need the header `Authorization: Bearer <token>`.
 | Method | Route | Description |
 |--------|-------|-------------|
 | POST | `/api/auth/register` | Create an account `{ full_name, email, password }` |
-| POST | `/api/auth/login` | Log in `{ email, password }` → `{ token, user }` |
+| POST | `/api/auth/login` | Log in `{ email, password }` → `{ token, user }`; after 5 wrong passwords in 10 minutes, `429` until the 10 minutes pass |
 | GET / POST | `/api/accounts` | List / add accounts |
 | PUT / DELETE | `/api/accounts/:id` | Edit / delete an account |
 | POST | `/api/accounts/transfer` | Move money `{ from_account, to_account, amount }` |
 | GET / POST | `/api/categories` | List / add categories |
-| DELETE | `/api/categories/:id` | Delete a category |
+| PUT / DELETE | `/api/categories/:id` | Rename `{ name }` / delete a category |
 | GET | `/api/transactions` | List; filters `?month=2026-11&type=expense&category_id=&account_id=&search=` |
 | POST | `/api/transactions` | Add `{ account_id, category_id, amount, txn_date, description }` |
 | PUT / DELETE | `/api/transactions/:id` | Edit / delete a transaction |

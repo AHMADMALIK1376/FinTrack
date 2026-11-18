@@ -42,9 +42,9 @@ BEGIN
     PERFORM pg_temp.expect_error(format('INSERT INTO accounts (user_id, account_name, account_type) VALUES (%s, %L, %L)', u1, 'Wallet', 'bank'), '23505', 'DB-04 duplicate account name for one user refused');
     INSERT INTO accounts (user_id, account_name, account_type) VALUES (u2, 'Wallet', 'cash');
     RAISE NOTICE 'PASS DB-04 same account name allowed for another user';
-    PERFORM pg_temp.expect_error(format('INSERT INTO accounts (user_id, account_name, account_type) VALUES (%s, %L, %L)', u1, 'Gold', 'crypto'), '23514', 'ACC-01 unknown account type refused');
+    PERFORM pg_temp.expect_error(format('INSERT INTO accounts (user_id, account_name, account_type) VALUES (%s, %L, %L)', u1, 'Gold', 'crypto'), '22P02', 'ACC-01 unknown account type refused');
     PERFORM pg_temp.expect_error(format('INSERT INTO categories (user_id, name, type) VALUES (%s, %L, %L)', u1, 'Food', 'expense'), '23505', 'DB-04 duplicate category refused');
-    PERFORM pg_temp.expect_error(format('INSERT INTO categories (user_id, name, type) VALUES (%s, %L, %L)', u1, 'Gifts', 'transfer'), '23514', 'DB-04 unknown category type refused');
+    PERFORM pg_temp.expect_error(format('INSERT INTO categories (user_id, name, type) VALUES (%s, %L, %L)', u1, 'Gifts', 'transfer'), '22P02', 'DB-04 unknown category type refused');
 
     -- users
     PERFORM pg_temp.expect_error('INSERT INTO users (full_name, email, password_hash) VALUES (''X'', ''dbtest1@test.pk'', ''x'')', '23505', 'AUTH-02 duplicate e-mail refused');
