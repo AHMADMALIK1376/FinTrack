@@ -80,7 +80,7 @@ function toast(message, type = 'success') {
   if (!box) {
     box = document.createElement('div');
     box.id = 'toastBox';
-    box.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    box.className = 'toast-container position-fixed top-0 start-50 translate-middle-x p-3';   // top centre: never covers a button
     box.style.zIndex = 2000;
     box.setAttribute('aria-live', 'polite');
     document.body.appendChild(box);

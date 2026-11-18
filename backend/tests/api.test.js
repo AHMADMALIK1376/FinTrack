@@ -369,6 +369,93 @@ describe('activity log and database role', () => {
   });
 });
 
+describe('paging and recurring transactions (TXN-05, TXN-07)', () => {
+  const today = () => new Date().toISOString().slice(0, 10);
+  const daysAgo = (n) => { const d = new Date(); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); };
+
+  test('TXN-05 keyset paging returns 50 at a time, newest first, with no gaps or repeats', async () => {
+    const u = await newUser('pager');
+    // 120 expenses spread over 30 days (several per day, so ties on the date are tested too)
+    await adminQuery(`INSERT INTO transactions (account_id, category_id, amount, txn_date, description)
+                      SELECT $1, $2, 10 + i, CURRENT_DATE - (i % 30), 'Item ' || i FROM generate_series(1, 120) i`, [u.cash, u.cat('Food')]);
+    const seen = [];
+    let page = await call('GET', '/api/transactions?limit=50', { token: u.token });
+    assert.strictEqual(page.body.length, 50);
+    while (page.body.length) {
+      seen.push(...page.body);
+      const last = page.body[page.body.length - 1];
+      page = await call('GET', `/api/transactions?limit=50&before_date=${last.txn_date.slice(0, 10)}&before_id=${last.transaction_id}`, { token: u.token });
+    }
+    assert.strictEqual(seen.length, 120, 'every row exactly once');
+    assert.strictEqual(new Set(seen.map((t) => t.transaction_id)).size, 120, 'no repeats');
+    const order = seen.map((t) => `${t.txn_date.slice(0, 10)} ${String(t.transaction_id).padStart(8, '0')}`);
+    assert.deepStrictEqual(order, [...order].sort().reverse(), 'newest first, then highest id first');
+    const filtered = await call('GET', '/api/transactions?limit=5&search=Item%2011', { token: u.token });
+    assert.ok(filtered.body.length >= 1 && filtered.body.every((t) => t.description.startsWith('Item 11')), 'filters still apply with paging');
+  });
+
+  test('TXN-07 a monthly rule starting today posts one transaction at once and moves to next month', async () => {
+    const u = await newUser('repeat');
+    const made = await call('POST', '/api/recurring', { token: u.token, body: {
+      account_id: u.cash, category_id: u.cat('Rent'), amount: 4000, description: 'Room rent', frequency: 'monthly', start_date: today() } });
+    assert.strictEqual(made.status, 201, JSON.stringify(made.body));
+    assert.strictEqual(made.body.posted, 1);
+    assert.strictEqual(made.body.rule.category, 'Rent');
+    assert.ok(made.body.rule.next_run_date.slice(0, 10) > today());
+    const txns = (await call('GET', '/api/transactions', { token: u.token })).body;
+    assert.ok(txns.some((t) => t.description === 'Room rent' && t.recurring_id === made.body.rule.recurring_id), 'the posted transaction links to its rule');
+    const list = (await call('GET', '/api/recurring', { token: u.token })).body;
+    assert.strictEqual(list.length, 1);
+  });
+
+  test('TXN-07 log-in posts rules that came due; pausing and resuming skips the paused dates', async () => {
+    const u = await newUser('weekly');
+    const rule = (await call('POST', '/api/recurring', { token: u.token, body: {
+      account_id: u.cash, category_id: u.cat('Transport'), amount: 500, description: 'Bus pass', frequency: 'weekly', start_date: daysAgo(14) } })).body;
+    assert.strictEqual(rule.posted, 3, 'started 14 days ago: 3 weekly transactions caught up');
+
+    // pretend a week passed without anyone opening FinTrack
+    await adminQuery("UPDATE recurring_transactions SET next_run_date = CURRENT_DATE WHERE recurring_id = $1", [rule.rule.recurring_id]);
+    const login = await call('POST', '/api/auth/login', { body: { email: u.email, password: 'secret123' } });
+    assert.strictEqual(login.status, 200);
+    const count = async () => (await call('GET', '/api/transactions?search=Bus%20pass', { token: u.token })).body.length;
+    assert.strictEqual(await count(), 4, 'logging in posted the one that came due');
+
+    const paused = await call('PUT', `/api/recurring/${rule.rule.recurring_id}`, { token: u.token, body: { is_active: false } });
+    assert.strictEqual(paused.body.rule.is_active, false);
+    await adminQuery("UPDATE recurring_transactions SET next_run_date = CURRENT_DATE - 7 WHERE recurring_id = $1", [rule.rule.recurring_id]);
+    const resumed = await call('PUT', `/api/recurring/${rule.rule.recurring_id}`, { token: u.token, body: { is_active: true } });
+    assert.strictEqual(resumed.body.rule.is_active, true);
+    assert.ok(resumed.body.rule.next_run_date.slice(0, 10) >= today(), 'resuming moves to today or later');
+    assert.strictEqual(await count(), 4, "the week missed while paused is not posted");
+
+    assert.strictEqual((await call('DELETE', `/api/recurring/${rule.rule.recurring_id}`, { token: u.token })).status, 204);
+    assert.ok(await count() >= 4, 'deleting the rule keeps its transactions');
+  });
+
+  test('TXN-07 rules are checked and private', async () => {
+    const u = await newUser('rules-check');
+    const other = await newUser('rules-other');
+    const bad = [
+      [{ frequency: 'daily' }, 'Choose how often it repeats: weekly or monthly.'],
+      [{ start_date: '2020-01-01' }, 'The start date must be within a year of today.'],
+      [{ amount: 0 }, null],
+      [{ account_id: other.cash }, 'Account or category not found.'],
+    ];
+    for (const [change, message] of bad) {
+      const res = await call('POST', '/api/recurring', { token: u.token, body: {
+        account_id: u.cash, category_id: u.cat('Food'), amount: 100, frequency: 'weekly', start_date: today(), ...change } });
+      assert.ok([400, 404].includes(res.status), JSON.stringify(change));
+      if (message) assert.strictEqual(res.body.error, message);
+    }
+    const mine = (await call('POST', '/api/recurring', { token: u.token, body: {
+      account_id: u.cash, category_id: u.cat('Food'), amount: 100, frequency: 'weekly', start_date: today() } })).body.rule;
+    assert.strictEqual((await call('GET', '/api/recurring', { token: other.token })).body.length, 0, 'SEC-01 another user sees none');
+    assert.strictEqual((await call('PUT', `/api/recurring/${mine.recurring_id}`, { token: other.token, body: { is_active: false } })).status, 404);
+    assert.strictEqual((await call('DELETE', `/api/recurring/${mine.recurring_id}`, { token: other.token })).status, 404);
+  });
+});
+
 describe('too many wrong passwords (SEC-05)', () => {
   const email = 'locked@test.pk';
   before(async () => {

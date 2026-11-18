@@ -33,6 +33,10 @@ function routes(): array
         ['POST', '/api/categories', 'categories_create', true],
         ['PUT', '/api/categories/{id}', 'categories_update', true],
         ['DELETE', '/api/categories/{id}', 'categories_delete', true],
+        ['GET', '/api/recurring', 'recurring_list', true],
+        ['POST', '/api/recurring', 'recurring_create', true],
+        ['PUT', '/api/recurring/{id}', 'recurring_update', true],
+        ['DELETE', '/api/recurring/{id}', 'recurring_delete', true],
         ['GET', '/api/transactions', 'transactions_list', true],
         ['POST', '/api/transactions', 'transactions_create', true],
         ['PUT', '/api/transactions/{id}', 'transactions_update', true],
@@ -122,6 +126,7 @@ function send_error(Throwable $error): void
             'account_kind' => 'Choose an account type: bank, cash, wallet or card.',
             'category_kind' => 'Choose whether the category is income or expense.',
             'money_pkr' => 'Amounts can be at most Rs 999,999,999.99.',
+            'recurrence_kind' => 'Choose how often it repeats: weekly or monthly.',
         ];
         foreach ($typeMessages as $type => $message) {
             if (in_array($state, ['22P02', '23514'], true) && str_contains($text, $type)) {

@@ -58,6 +58,8 @@ function auth_login(): void
         execute('CALL record_failed_login(CAST(? AS inet), ?)', [$ip, $email]);
         throw new ApiError(401, 'Wrong email or password.');
     }
+    // TXN-07: post this user's recurring transactions that came due since the last visit
+    post_due_for((int) $user['user_id']);
     json_response(['token' => jwt_sign($user), 'user' => [
         'user_id' => $user['user_id'], 'full_name' => $user['full_name'], 'email' => $user['email'],
     ]]);

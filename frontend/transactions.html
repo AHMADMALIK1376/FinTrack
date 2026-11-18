@@ -60,11 +60,22 @@
             <div class="col-6 ft-field"><label for="txnDate">Date</label><input id="txnDate" type="date" class="ft-input" required></div>
           </div>
           <div class="ft-field"><label for="description">Description</label><input id="description" class="ft-input" maxlength="255" placeholder="e.g. Groceries at Imtiaz"></div>
+          <div class="ft-field" id="repeatField"><label for="repeat">Repeat</label>
+            <select id="repeat" class="ft-input"><option value="">Doesn't repeat</option><option value="weekly">Every week</option><option value="monthly">Every month</option></select>
+            <p class="ft-muted d-none" id="repeatHint" style="margin-top:2px"></p></div>
           <div class="ft-note" id="afterNote"></div>
           <button class="ft-btn lg" id="saveBtn">Save transaction</button>
         </form>
       </aside>
     </div>
+
+    <section class="ft-card d-flex flex-column gap-2" id="repeating" aria-labelledby="repeatTitle">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div><h2 class="ft-label" id="repeatTitle">Repeating transactions</h2>
+          <p class="ft-muted mt-1">Posted for you on their date, for example rent every month or a bus pass every week. Pause one any time.</p></div>
+      </div>
+      <ul class="ft-activity" id="rules"></ul>
+    </section>
   </main>
 </div>
 <nav class="ft-tabbar" id="tabbar" aria-label="Main"></nav>
@@ -83,14 +94,15 @@
   const params = new URLSearchParams(location.search);
   if (params.get('search')) $('fSearch').value = params.get('search');
 
-  let categories = [], accounts = [], list = [], shown = 20;
+  const PAGE = 50;   // TXN-05: rows per page
+  let categories = [], accounts = [], list = [], hasMore = false, rules = [];
   const state = { type: '', editing: null, kind: 'expense', categoryId: null };
 
   // ---------- list ----------
   function rowHtml(t, i) {
     return `<tr>
       <td><span class="who"><span class="ft-cat ${t.type}">${icon(catIcon(t.category), 20)}</span>
-        <span style="min-width:0"><b>${esc(t.description || t.category)}</b><small>${t.type === 'income' ? 'Income' : 'Expense'}</small></span></span></td>
+        <span style="min-width:0"><b>${esc(t.description || t.category)}</b><small class="d-inline-flex align-items-center gap-1">${t.type === 'income' ? 'Income' : 'Expense'}${t.recurring_id ? ` · ${icon('repeat', 12)} Repeats` : ''}</small></span></span></td>
       <td style="color:#475569">${dateLabel(t.txn_date)}</td>
       <td><span class="d-inline-flex align-items-center gap-2" style="color:#334155">${icon(accIcon(accounts.find((a) => a.account_id === t.account_id)?.account_type), 16)}${esc(t.account_name)}</span></td>
       <td><span class="ft-tag ${t.type}">${esc(t.category)}</span></td>
@@ -100,22 +112,47 @@
         <button class="ft-iconbtn sm" type="button" onclick="remove(${i})" aria-label="Delete ${esc(t.description || t.category)}">${icon('trash', 17)}</button></span></td></tr>`;
   }
   function renderRows() {
-    $('rows').innerHTML = list.slice(0, shown).map(rowHtml).join('')
+    $('rows').innerHTML = list.map(rowHtml).join('')
       || `<tr><td colspan="6" class="ft-empty">No transactions match. ${hasFilters() ? 'Try clearing the filters.' : 'Add your first one with the form.'}</td></tr>`;
-    $('showing').textContent = list.length ? `Showing ${Math.min(shown, list.length)} of ${list.length} transaction${list.length === 1 ? '' : 's'}` : '';
-    $('moreBtn').classList.toggle('d-none', shown >= list.length);
+    $('showing').textContent = !list.length ? '' : hasMore
+      ? `Showing the newest ${list.length}. Older ones are one click away.`
+      : `Showing all ${list.length} transaction${list.length === 1 ? '' : 's'}`;
+    $('moreBtn').classList.toggle('d-none', !hasMore);
   }
   const hasFilters = () => state.type || $('fCategory').value || $('fAccount').value || $('fSearch').value.trim();
 
+  /** The filters as query text, e.g. month=2026-11&type=expense */
+  function filterQuery(extra = {}) {
+    const q = new URLSearchParams({ month: $('month').value, type: state.type, category_id: $('fCategory').value,
+      account_id: $('fAccount').value, search: $('fSearch').value.trim(), ...extra });
+    [...q.keys()].forEach((k) => !q.get(k) && q.delete(k));
+    return q.toString();
+  }
+
+  /** One page (TXN-05): asks for 51 rows; if 51 come back there is another page. Keyset: older than the last row shown. */
+  async function fetchPage(after) {
+    const rows = await api('/transactions?' + filterQuery({
+      limit: PAGE + 1, ...(after ? { before_date: after.txn_date.slice(0, 10), before_id: after.transaction_id } : {}) }));
+    return { rows: rows.slice(0, PAGE), more: rows.length > PAGE };
+  }
+
   async function load() {
     const month = $('month').value;
-    const q = new URLSearchParams({ month, type: state.type, category_id: $('fCategory').value, account_id: $('fAccount').value, search: $('fSearch').value.trim() });
-    [...q.keys()].forEach((k) => !q.get(k) && q.delete(k));
-    const [filtered, all] = await Promise.all([api('/transactions?' + q), hasFilters() ? api('/transactions?month=' + month) : null]);
-    list = filtered;
-    shown = 20;
+    const [page, all] = await Promise.all([fetchPage(null), api(`/transactions?month=${month}&limit=5000`)]);
+    list = page.rows;
+    hasMore = page.more;
     renderRows();
-    renderSummary(all || filtered, month);
+    renderSummary(all, month);
+  }
+
+  async function loadMore() {
+    $('moreBtn').disabled = true;
+    try {
+      const page = await fetchPage(list[list.length - 1]);
+      list = list.concat(page.rows);
+      hasMore = page.more;
+      renderRows();
+    } finally { $('moreBtn').disabled = false; }
   }
 
   function renderSummary(all, month) {
@@ -166,6 +203,9 @@
     $('panelTitle').textContent = t ? 'Edit transaction' : 'Add transaction';
     $('saveBtn').textContent = t ? 'Save changes' : 'Save transaction';
     $('closeBtn').setAttribute('aria-label', t ? 'Stop editing' : 'Clear the form');
+    $('repeatField').classList.toggle('d-none', !!t);   // repeating is set when adding, not when editing one entry
+    $('repeat').value = '';
+    updateRepeatHint();
     $('amount').value = t ? fmt(t.amount, Number(t.amount) % 1 ? 2 : 0) : '';
     $('description').value = t?.description || '';
     $('txnDate').value = t ? t.txn_date.slice(0, 10) : ($('month').value === thisMonth() ? today() : $('month').value + '-01');
@@ -188,6 +228,7 @@
     state.editing = null;
     $('panelTitle').textContent = 'Add transaction';
     $('saveBtn').textContent = 'Save transaction';
+    $('repeatField').classList.remove('d-none');
     $('txnDate').value = $('month').value === thisMonth() ? today() : $('month').value + '-01';
     setKind(state.kind);
   }
@@ -212,9 +253,19 @@
     const body = { account_id: Number($('account').value), category_id: state.categoryId, amount, txn_date: $('txnDate').value, description: $('description').value.trim() };
     $('saveBtn').disabled = true;
     try {
+      const repeat = !state.editing && $('repeat').value;
       if (state.editing) await api('/transactions/' + state.editing.transaction_id, { method: 'PUT', body });
-      else await api('/transactions', { method: 'POST', body });
-      toast(state.editing ? 'Transaction updated' : 'Transaction saved');
+      else if (!repeat) await api('/transactions', { method: 'POST', body });
+      if (repeat) {
+        // TXN-07: a rule; the database posts today's (or past) dates straight away
+        const made = await api('/recurring', { method: 'POST', body: { ...body, frequency: repeat, start_date: body.txn_date } });
+        toast(made.posted
+          ? `Saved. It repeats ${repeat === 'weekly' ? 'every week' : 'every month'}; next on ${dateLabel(made.rule.next_run_date)}`
+          : `Repeating transaction set. The first one is on ${dateLabel(made.rule.next_run_date)}`);
+      }
+      else toast(state.editing ? 'Transaction updated' : 'Transaction saved');
+      $('repeat').value = '';
+      updateRepeatHint();
       const keepKind = state.kind;
       closePanel();
       setKind(keepKind);
@@ -228,21 +279,67 @@
     $('account').innerHTML = accounts.map((a) => `<option value="${a.account_id}">${esc(a.account_name)}</option>`).join('');
     if (selected) $('account').value = selected;
     updateNote();
-    await load();
+    await Promise.all([load(), loadRules()]);
     shell.refresh();
   }
 
-  function downloadCsv() {
-    if (!list.length) { toast('Nothing to download for these filters.', 'warning'); return; }
-    const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const lines = [['Date', 'Description', 'Type', 'Category', 'Account', 'Amount'].join(',')]
-      .concat(list.map((t) => [t.txn_date.slice(0, 10), t.description, t.type, t.category, t.account_name, (t.type === 'income' ? '' : '-') + t.amount].map(cell).join(',')));
+  // ---------- repeating transactions (TXN-07) ----------
+  function updateRepeatHint() {
+    const r = $('repeat').value, d = $('txnDate').value;
+    $('repeatHint').classList.toggle('d-none', !r);
+    if (!r || !d) return;
+    const day = new Date(d + 'T00:00:00');
+    $('repeatHint').textContent = r === 'weekly'
+      ? `Every ${day.toLocaleDateString('en-GB', { weekday: 'long' })}, starting ${dateLabel(d)}.`
+      : `On day ${day.getDate()} of every month, starting ${dateLabel(d)}.${day.getDate() > 28 ? ' In shorter months, on the last day.' : ''}`;
+  }
+
+  async function loadRules() {
+    rules = await api('/recurring');
+    $('rules').innerHTML = rules.map((r, i) => `<li style="align-items:center">
+      <span class="ft-cat ${r.type}" style="opacity:${r.is_active ? 1 : .5}">${icon(catIcon(r.category), 20)}</span>
+      <span class="d-flex flex-column gap-1 flex-grow-1" style="min-width:0">
+        <span class="txt fw-semibold text-truncate">${esc(r.description || r.category)} <span class="amt-${r.type}" style="margin-left:6px">${signed(r)}</span></span>
+        <span class="ft-muted d-inline-flex align-items-center gap-1 flex-wrap">${icon('repeat', 13)}${r.frequency === 'weekly' ? 'Every week' : 'Every month'} · ${esc(r.account_name)} ·
+          ${r.is_active ? `next on <b style="color:var(--ft-text)">${dateLabel(r.next_run_date)}</b>` : '<b>Paused</b>'} · posted ${r.times_posted} time${r.times_posted === 1 ? '' : 's'}</span>
+      </span>
+      <span class="d-inline-flex gap-1">
+        <button class="ft-iconbtn sm" type="button" onclick="toggleRule(${i})" aria-label="${r.is_active ? 'Pause' : 'Resume'} ${esc(r.description || r.category)}" title="${r.is_active ? 'Pause' : 'Resume'}">${icon(r.is_active ? 'pause' : 'play', 17)}</button>
+        <button class="ft-iconbtn sm" type="button" onclick="deleteRule(${i})" aria-label="Stop repeating ${esc(r.description || r.category)}" title="Stop repeating">${icon('trash', 17)}</button>
+      </span></li>`).join('')
+      || '<li class="ft-empty border-0 d-block">Nothing repeats yet. When you add a transaction, choose "Every week" or "Every month" under Repeat.</li>';
+  }
+
+  window.toggleRule = attempt(async (i) => {
+    const r = rules[i];
+    const res = await api('/recurring/' + r.recurring_id, { method: 'PUT', body: { is_active: !r.is_active } });
+    toast(r.is_active ? `Paused. Nothing more is posted until you resume it.` : `Resumed. Next on ${dateLabel(res.rule.next_run_date)}`);
+    await refreshAll();
+  });
+  window.deleteRule = attempt(async (i) => {
+    const r = rules[i];
+    if (!await confirmAction({ title: `Stop repeating "${r.description || r.category}"?`, text: 'Nothing more will be posted. The transactions it already added stay in your list.', confirm: 'Stop repeating' })) return;
+    await api('/recurring/' + r.recurring_id, { method: 'DELETE' });
+    toast('It no longer repeats');
+    await loadRules();
+  });
+
+  /** TXN-06: every row that matches the filters (not only the pages shown), as a CSV file Excel can open. */
+  const downloadCsv = attempt(async () => {
+    const rows = await api('/transactions?' + filterQuery({ limit: 5000 }));
+    if (!rows.length) { toast('Nothing to download for these filters.', 'warning'); return; }
+    // a text cell starting with = + - @ could run as a formula in Excel, so it gets a leading apostrophe
+    const text = (v) => `"${String(v ?? '').replace(/^([=+\-@])/, "'$1").replace(/"/g, '""')}"`;
+    const lines = [['Date', 'Description', 'Type', 'Category', 'Account', 'Amount (Rs)', 'Repeats'].join(',')]
+      .concat(rows.map((t) => [t.txn_date.slice(0, 10), text(t.description), t.type, text(t.category), text(t.account_name),
+        (t.type === 'income' ? '' : '-') + t.amount, t.recurring_id ? 'yes' : ''].join(',')));
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([lines.join('\r\n')], { type: 'text/csv' }));
     a.download = `fintrack-transactions-${$('month').value}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
-  }
+    toast(`Downloaded ${rows.length} transaction${rows.length === 1 ? '' : 's'}`);
+  });
 
   // ---------- events ----------
   $('typeSeg').addEventListener('click', (e) => {
@@ -262,7 +359,9 @@
   $('fSearch').addEventListener('input', () => { clearTimeout(window.searchTimer); window.searchTimer = setTimeout(attempt(load), 300); });
   $('amount').addEventListener('input', updateNote);
   $('account').addEventListener('change', updateNote);
-  $('moreBtn').addEventListener('click', () => { shown += 20; renderRows(); });
+  $('moreBtn').addEventListener('click', attempt(loadMore));
+  $('repeat').addEventListener('change', updateRepeatHint);
+  $('txnDate').addEventListener('change', updateRepeatHint);
   $('csvBtn').addEventListener('click', downloadCsv);
   $('closeBtn').addEventListener('click', closePanel);
   $('backdrop').addEventListener('click', closePanel);
@@ -275,7 +374,7 @@
     $('fAccount').innerHTML += accounts.map((a) => `<option value="${a.account_id}">${esc(a.account_name)}</option>`).join('');
     $('account').innerHTML = accounts.map((a) => `<option value="${a.account_id}">${esc(a.account_name)}</option>`).join('');
     openPanelQuiet();
-    await load();
+    await Promise.all([load(), loadRules()]);
     if (location.hash === '#add') { openPanel(); history.replaceState(null, '', location.pathname + location.search); }
   }))();
 </script>
