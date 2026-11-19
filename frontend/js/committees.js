@@ -93,8 +93,9 @@ function bcCreateDialog() {
         <b>${icon(m.icon, 16)}${esc(m.label)}</b></label>`).join('')}</div>
       <p class="ft-muted mt-1" id="bcMethodHelp">${esc(BC_METHODS.draw.help)}</p></fieldset>
     <div style="border-radius:16px;background:var(--ft-ink);color:#fff;padding:16px;display:flex;justify-content:space-between;gap:12px" aria-live="polite">
-      <div><p class="m-0" style="font-size:12px;color:#CBD5E1">Pot each month</p><p class="ft-big" style="color:#fff;font-size:26px;margin-top:4px" id="bcPot">Rs 0</p></div>
-      <div class="text-end"><p class="m-0" style="font-size:12px;color:#CBD5E1" id="bcRuns"></p><p class="m-0 mt-1 fw-semibold" style="font-size:15px" id="bcRange"></p></div>
+      <div><p class="m-0" style="font-size:12px;color:#CBD5E1">Pot each month</p><p class="ft-big" style="color:#fff;font-size:26px;margin-top:4px" id="bcPot">Rs 0</p>
+        <p class="m-0 mt-1" style="font-size:12px;color:#CBD5E1" id="bcPotSum"></p></div>
+      <div class="text-end"><p class="m-0" style="font-size:12px;color:#CBD5E1" id="bcRuns"></p><p class="m-0 mt-1 fw-semibold" style="font-size:15px;white-space:nowrap" id="bcRange"></p></div>
     </div>
     <p class="text-danger small m-0 d-none" id="bcErr" role="alert"></p>`,
   `<button type="button" class="ft-btn light" data-bs-dismiss="modal">Cancel</button><button class="ft-btn" id="bcGo">Create and invite<span data-i="arrowr"></span></button>`);
@@ -103,6 +104,8 @@ function bcCreateDialog() {
   const update = () => {
     const n = Number($('bcCount').value) || 0;
     $('bcPot').textContent = money((amount() || 0) * n);
+    $('bcPotSum').textContent = amount() > 0 && n ? `${money(amount())} × ${n} people, one gets it all` : '';
+    $('bcErr').classList.add('d-none');   // the message from the last try goes away as soon as something changes
     $('bcRuns').textContent = n ? `Runs for ${n} months` : '';
     $('bcRange').textContent = n && $('bcStart').value ? bcRange(`${$('bcStart').value}-01`, n) : '';
     $('bcMethodHelp').textContent = BC_METHODS[d.el.querySelector('input[name=bcMethod]:checked').value].help;
