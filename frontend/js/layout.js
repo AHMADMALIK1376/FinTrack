@@ -6,6 +6,7 @@ const NAV = [
   { href: 'transactions.html', label: 'Transactions', icon: 'swap' },
   { href: 'accounts.html', label: 'Accounts', icon: 'wallet', count: 'accounts' },
   { href: 'budgets.html', label: 'Budgets & goals', icon: 'pie', count: 'warnings' },
+  { href: 'committees.html', label: 'Committees', icon: 'users', count: 'committees' },
   { href: 'reports.html', label: 'Reports', icon: 'chart' },
 ];
 
@@ -71,7 +72,7 @@ const shell = {
         </div>
       </div>`;
 
-    const tabs = [['dashboard.html', 'Home', 'grid'], ['transactions.html', 'Activity', 'swap'], null, ['budgets.html', 'Budgets', 'pie'], ['accounts.html', 'Accounts', 'wallet']];
+    const tabs = [['dashboard.html', 'Home', 'grid'], ['transactions.html', 'Activity', 'swap'], null, ['committees.html', 'Committees', 'users'], ['budgets.html', 'Budgets', 'pie']];
     document.getElementById('tabbar').innerHTML = tabs.map((t) => (t
       ? `<a href="${t[0]}" class="${t[0] === page ? 'active' : ''}" ${t[0] === page ? 'aria-current="page"' : ''}>${icon(t[2], 22)}${t[1]}</a>`
       : `<a href="transactions.html#add" class="add" aria-label="Add transaction">${icon('plus', 26)}</a>`)).join('');
@@ -91,9 +92,11 @@ const shell = {
   /** Updates the menu counts, Shan's tip and the notifications for the current month. */
   async refresh() {
     try {
-      const [accounts, report] = await Promise.all([api('/accounts'), api('/reports/dashboard?month=' + thisMonth())]);
+      const [accounts, report, committees] = await Promise.all([api('/accounts'), api('/reports/dashboard?month=' + thisMonth()),
+        api('/committees').catch(() => [])]);
       const warnings = report.budget_warnings;
-      const counts = { accounts: accounts.length, warnings: warnings.length };
+      const bc = committeeNotices(committees);
+      const counts = { accounts: accounts.length, warnings: warnings.length, committees: bc.length };
       document.querySelectorAll('[data-count]').forEach((el) => {
         const n = counts[el.dataset.count];
         el.textContent = n;
@@ -118,12 +121,16 @@ const shell = {
         link.classList.add('d-none');
       }
 
-      document.getElementById('bellDot').classList.toggle('d-none', !warnings.length);
-      document.getElementById('bellBtn').setAttribute('aria-label', warnings.length ? `Notifications, ${warnings.length} new` : 'Notifications');
-      document.getElementById('bellMenu').innerHTML = warnings.length
-        ? `<p class="ft-sec mt-1 mb-2">This month</p>` + warnings.map((w) => `<a class="dropdown-item align-items-start" href="budgets.html" style="white-space:normal">
-            <span class="ft-cat" style="width:34px;height:34px;background:var(--ft-amber-bg);color:var(--ft-amber)">${icon('alert', 16)}</span>
-            <span><b class="d-block" style="font-size:14px">${esc(w.category)} is over budget</b><span class="ft-muted">by ${money(w.over_by)} (${money(w.spent)} of ${money(w.limit_amount)})</span></span></a>`).join('')
+      const total = warnings.length + bc.length;
+      const item = (href, ic, bg, fg, head, text) => `<a class="dropdown-item align-items-start" href="${href}" style="white-space:normal">
+            <span class="ft-cat" style="width:34px;height:34px;background:${bg};color:${fg}">${icon(ic, 16)}</span>
+            <span><b class="d-block" style="font-size:14px">${head}</b><span class="ft-muted">${text}</span></span></a>`;
+      document.getElementById('bellDot').classList.toggle('d-none', !total);
+      document.getElementById('bellBtn').setAttribute('aria-label', total ? `Notifications, ${total} new` : 'Notifications');
+      document.getElementById('bellMenu').innerHTML = total
+        ? (warnings.length ? `<p class="ft-sec mt-1 mb-2">This month</p>` + warnings.map((w) => item('budgets.html', 'alert', 'var(--ft-amber-bg)', 'var(--ft-amber)',
+            `${esc(w.category)} is over budget`, `by ${money(w.over_by)} (${money(w.spent)} of ${money(w.limit_amount)})`)).join('') : '')
+          + (bc.length ? `<p class="ft-sec mt-2 mb-2">Committees</p>` + bc.map((n) => item(n.href, n.icon, '#EAF1FC', 'var(--ft-brand)', n.head, n.text)).join('') : '')
         : '<p class="ft-empty m-0">You\'re all caught up. No budget is over its limit.</p>';
     } catch (e) {
       document.getElementById('shanHead').textContent = 'Shan is resting';
@@ -135,6 +142,20 @@ const shell = {
     return `<label class="ft-month">${icon('calendar', 18)}<span class="visually-hidden">Month</span><input type="month" id="${id}" value="${value}" max="2100-12"></label>`;
   },
 };
+
+/** Committee things waiting for the user: invitations, people to approve, this round's payment. */
+function committeeNotices(list) {
+  const out = [];
+  for (const c of list) {
+    const href = `committee.html?id=${c.committee_id}`;
+    if (c.my_status === 'invited') out.push({ href, icon: 'users', head: `Invitation: ${esc(c.name)}`, text: `${esc(c.organizer_name)} invited you · ${money(c.amount)} a month` });
+    if (c.requests) out.push({ href, icon: 'users', head: `${c.requests} waiting to join ${esc(c.name)}`, text: 'Approve or remove them' });
+    if (c.status === 'active' && c.my_status === 'approved' && !c.my_marked_at) {
+      out.push({ href, icon: 'clock', head: `Pay ${money(c.amount)} · ${esc(c.name)}`, text: `Round ${c.current_round}, due by ${c.due_day} ${monthName(String(c.current_month).slice(0, 7)).split(' ')[0]}` });
+    }
+  }
+  return out;
+}
 
 /**
  * Gentle 3D tilt for the smaller cards: they lean up to 5 degrees towards the mouse and lift a little.

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>FinTrack · Committee</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="assets/icon.svg">
+<link href="vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="visually-hidden-focusable" href="#content">Skip to content</a>
+<div class="ft-app">
+  <aside class="ft-card ft-side" id="sidebar"></aside>
+  <main class="ft-main" id="content">
+    <header class="ft-top" id="topbar"></header>
+    <section class="ft-card ft-bc-head" id="head" aria-live="polite"><p class="ft-empty m-0">Loading…</p></section>
+    <div class="ft-row" id="rowA"></div>
+    <div class="ft-row" id="rowB"></div>
+  </main>
+</div>
+<nav class="ft-tabbar" id="tabbar" aria-label="Main"></nav>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/api.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/committees.js"></script>
+<script>
+  const id = Number(new URLSearchParams(location.search).get('id'));
+  shell.render('committees.html', { title: 'Committee', sub: '' });
+  document.querySelector('#topbar .sub').innerHTML = '<a href="committees.html">Committees</a> › <span id="crumb"></span>';
+  const $ = (x) => document.getElementById(x);
+  const todayIso = today();
+  let d = null;            // the committee as the API returns it
+  let accounts = [];
+  let order = [];          // member ids, for a fixed order before starting
+
+  const first = (name) => String(name || '').split(' ')[0];
+  const colour = (m) => d.members.findIndex((x) => x.member_id === m.member_id);
+  const nameOf = (m) => (m.is_me ? `You (${m.display_name})` : m.display_name);
+  function ago(ts) {
+    const s = (Date.now() - new Date(ts)) / 1000;
+    if (s < 60) return 'just now';
+    if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)} hour${s < 7200 ? '' : 's'} ago`;
+    if (s < 172800) return 'Yesterday';
+    return bcDate(ts, new Date(ts).getFullYear() !== new Date().getFullYear());
+  }
+
+  async function load() {
+    [d, accounts] = await Promise.all([api('/committees/' + id), api('/accounts')]);
+    const c = d.committee;
+    document.title = `FinTrack · ${c.name}`;
+    document.querySelector('#topbar h1').textContent = c.name;
+    $('crumb').textContent = c.name;
+    if (!order.length) order = d.members.filter((m) => m.status === 'approved').map((m) => m.member_id);
+    renderHead();
+    if (d.me.status !== 'approved') return renderOutside();
+    if (c.status === 'forming') renderForming(); else renderRunning();
+  }
+
+  function renderHead() {
+    const c = d.committee;
+    const me = d.me;
+    const approved = d.members.filter((m) => m.status === 'approved').length;
+    const done = d.rounds.filter((r) => r.paid_out_at).length;
+    const cur = d.rounds.find((r) => !r.paid_out_at);
+    const progress = c.status === 'forming'
+      ? `<div class="d-flex justify-content-between" style="font-size:13px"><b>Getting ready</b><span class="ft-muted">${approved} of ${c.member_count} joined</span></div>
+         <div class="ft-rounds lg">${Array.from({ length: c.member_count }, (_, i) => `<span class="${i < approved ? 'done' : ''}"></span>`).join('')}</div>`
+      : `<div class="d-flex justify-content-between" style="font-size:13px"><b>${cur ? `Round ${cur.round_no} of ${c.member_count}` : 'Finished'}</b>
+           <span class="ft-muted">${done} round${done === 1 ? '' : 's'} paid out${cur ? ` · ${c.member_count - done} to go` : ''}</span></div>${bcRounds(done, c.member_count, true)}`;
+    const menu = c.status === 'forming' && me.status === 'approved'
+      ? `<div class="dropdown"><button class="ft-iconbtn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More">${icon('dots', 18)}</button>
+          <ul class="dropdown-menu dropdown-menu-end">${me.is_organizer
+            ? `<li><button class="dropdown-item text-danger" data-act="delete">${icon('trash', 18)}Delete committee</button></li>`
+            : `<li><button class="dropdown-item text-danger" data-act="leave">${icon('logout', 18)}Leave committee</button></li>`}</ul></div>` : '';
+    $('head').innerHTML = `<div class="band">
+      <div class="d-flex gap-3 align-items-center"><span class="ft-save" style="width:56px;height:56px;border-radius:16px">${icon(bcIcon(c.name), 26)}</span>
+        <div><p class="m-0" style="font-size:13px;opacity:.9">Organized by ${me.is_organizer ? 'you' : esc(c.organizer_name)} · ${c.member_count} members · ${esc(BC_METHODS[c.payout_method].short)}</p>
+          <h2>${esc(c.name)}</h2></div></div>
+      <div class="d-flex gap-4 flex-wrap">
+        <div><p class="lab">Each month</p><p class="ft-big">${money(c.amount)}</p></div>
+        <div><p class="lab">Pot each round</p><p class="ft-big">${money(c.amount * c.member_count)}</p></div>
+        <div><p class="lab">Runs</p><p class="ft-big">${bcMonth(c.start_month).split(' ')[0]} – ${bcMonth(bcAddMonths(c.start_month, c.member_count - 1)).split(' ')[0]}</p></div>
+      </div></div>
+      <div class="foot">
+        <div class="d-flex flex-column gap-2" style="flex:1 1 380px">${progress}</div>
+        ${c.invite_code ? `<div class="d-flex gap-2 flex-wrap align-items-center">
+          <span class="ft-code">${esc(c.invite_code)}<button class="ft-btn light" style="min-height:30px;padding:0 8px;font-size:12px" data-act="copycode">${icon('copy', 14)}Copy</button></span>
+          ${c.status === 'forming' ? `<button class="ft-chip-btn" data-act="invite">${icon('share', 18)}Invite people</button>` : ''}${menu}</div>` : ''}
+      </div>`;
+  }
+
+  /** Invited, or waiting for approval: the basics only. */
+  function renderOutside() {
+    const c = d.committee;
+    const invited = d.me.status === 'invited';
+    $('rowA').innerHTML = `<section class="ft-card d-flex flex-column gap-3" style="flex:1 1 420px">
+      <h2 class="ft-label">${invited ? `${esc(c.organizer_name)} invited you` : 'You asked to join'}</h2>
+      <p class="ft-muted" style="font-size:13px;line-height:1.5">${invited
+        ? `You'd pay ${money(c.amount)} by the ${c.due_day}th of each month for ${c.member_count} months, and get ${money(c.amount * c.member_count)} once, on your turn.`
+        : `${esc(first(c.organizer_name))} will approve you. Once you're in, you'll see the rounds, payments and history here.`}</p>
+      <div class="d-flex gap-2">${invited
+        ? `<button class="ft-btn" style="flex:1" data-act="accept">${icon('check', 18)}Join</button><button class="ft-btn light" style="flex:1" data-act="leave">No thanks</button>`
+        : `<button class="ft-btn light" data-act="leave">Cancel request</button>`}</div></section>
+      ${membersCard('Who has joined', false)}`;
+    $('rowB').innerHTML = '';
+  }
+
+  function memberLine(m) {
+    if (m.is_organizer) return 'Organizer';
+    if (m.is_guest) return 'Guest · not on FinTrack';
+    return { invited: 'Invited · hasn\'t answered yet', requested: 'Asked to join', approved: 'Joined' }[m.status];
+  }
+
+  function membersCard(title, actions) {
+    const org = d.me.is_organizer && actions;
+    const rows = d.members.map((m) => `<div class="ft-mrow">${bcAvatar(m.display_name, colour(m))}
+      <div class="who"><p style="${m.is_me ? 'font-weight:600' : ''}">${esc(nameOf(m))}</p><p class="ft-muted mt-1">${memberLine(m)}</p></div>
+      ${m.status === 'requested' && org ? `<button class="ft-btn" style="min-height:34px;font-size:13px;padding:0 12px" data-approve="${m.member_id}">Approve</button>` : ''}
+      ${m.status === 'invited' ? bcTag('Invited', 'wait', 'clock') : ''}
+      ${org && !m.is_organizer ? `<button class="ft-iconbtn" style="width:36px;height:36px" aria-label="Remove ${esc(m.display_name)}" data-remove="${m.member_id}">${icon('x', 16)}</button>` : ''}
+    </div>`).join('');
+    return `<section class="ft-card d-flex flex-column gap-2" style="flex:2 1 460px">
+      <div class="d-flex justify-content-between align-items-center"><h2 class="ft-label">${title}</h2>
+        <span class="ft-muted">${d.members.filter((m) => m.status === 'approved').length} of ${d.committee.member_count} places</span></div>
+      <div>${rows}</div></section>`;
+  }
+
+  function rulesCard() {
+    const c = d.committee;
+    const guests = d.members.filter((m) => m.is_guest).length;
+    const org = d.me.is_organizer ? 'you' : first(c.organizer_name);
+    return `<section class="ft-card d-flex flex-column gap-3" style="flex:1 1 300px">
+      <h2 class="ft-label">Rules of this committee</h2>
+      <div class="ft-rule">${icon('calendar', 16)}<span>Pay by the <b>${c.due_day}th</b> of each month</span></div>
+      <div class="ft-rule">${icon('gift', 16)}<span>Pot paid out on the <b>${c.payout_day}th</b></span></div>
+      <div class="ft-rule">${icon(BC_METHODS[c.payout_method].icon, 16)}<span>${{ draw: 'Order by <b>lucky draw</b>, done once', fixed: 'Order <b>set before the start</b>, can\'t change', organizer: '<b>Organizer chooses</b> each month; nobody gets it twice' }[c.payout_method]}</span></div>
+      <div class="ft-rule">${icon('shield', 16)}<span>Only ${org === 'you' ? 'you' : esc(org)} can confirm payments and pay out</span></div>
+      ${guests ? `<div class="ft-rule">${icon('users', 16)}<span>${guests} guest${guests === 1 ? '' : 's'} (not on FinTrack); ${org === 'you' ? 'you mark' : esc(org) + ' marks'} theirs</span></div>` : ''}
+    </section>`;
+  }
+
+  function renderForming() {
+    const c = d.committee;
+    const approved = d.members.filter((m) => m.status === 'approved');
+    const full = approved.length === c.member_count;
+    let start = '';
+    if (d.me.is_organizer) {
+      const fixed = c.payout_method === 'fixed';
+      const byId = Object.fromEntries(approved.map((m) => [m.member_id, m]));
+      order = order.filter((x) => byId[x]).concat(approved.map((m) => m.member_id).filter((x) => !order.includes(x)));
+      start = `<section class="ft-card d-flex flex-column gap-3" style="flex:1 1 340px">
+        <h2 class="ft-label">Start the committee</h2>
+        <p class="ft-muted" style="font-size:13px;line-height:1.5">${full ? 'Everyone has joined.' : `${c.member_count - approved.length} more ${c.member_count - approved.length === 1 ? 'person' : 'people'} needed.`} ${esc(BC_METHODS[c.payout_method].help)}</p>
+        ${fixed ? `<ol class="ft-order">${order.map((mid, i) => `<li><span class="n">${i + 1}</span>${bcAvatar(byId[mid].display_name, colour(byId[mid]))}
+            <span class="flex-grow-1" style="font-size:14px;min-width:0">${esc(nameOf(byId[mid]))}</span>
+            <button class="ft-iconbtn" style="width:32px;height:32px" aria-label="Move ${esc(byId[mid].display_name)} up" data-up="${i}" ${i ? '' : 'disabled'}><span style="display:inline-flex;transform:rotate(180deg)">${icon('chev', 16)}</span></button>
+            <button class="ft-iconbtn" style="width:32px;height:32px" aria-label="Move ${esc(byId[mid].display_name)} down" data-down="${i}" ${i < order.length - 1 ? '' : 'disabled'}>${icon('chev', 16)}</button></li>`).join('')}</ol>` : ''}
+        <button class="ft-btn lg" data-act="start" ${full ? '' : 'disabled'}>${icon(BC_METHODS[c.payout_method].icon, 18)}${c.payout_method === 'draw' ? 'Draw the order and start' : 'Start the committee'}</button>
+      </section>`;
+    } else {
+      start = `<section class="ft-card d-flex flex-column gap-3" style="flex:1 1 340px"><h2 class="ft-label">Waiting to start</h2>
+        <div class="ft-iconbox">${icon('clock', 17)}<span>${full ? `Everyone has joined. ${esc(first(c.organizer_name))} will start it soon.` : `Waiting for ${c.member_count - approved.length} more. Share the code <b>${esc(c.invite_code)}</b> with family and friends.`}</span></div>
+        ${linkCard(true)}</section>`;
+    }
+    $('rowA').innerHTML = membersCard('Members', true) + start;
+    $('rowB').innerHTML = activityCard() + rulesCard();
+  }
+
+  /** The current round's payment state for one member. */
+  function payState(m, round) {
+    const c = d.committee;
+    const p = round.payments.find((x) => x.member_id === m.member_id);
+    const due = `${String(round.month).slice(0, 8)}${String(c.due_day).padStart(2, '0')}`;
+    if (p?.confirmed_at) return { key: 'ok', tag: bcTag('Paid · confirmed', 'ok', 'check') };
+    if (p) return { key: 'wait', tag: bcTag(d.me.is_organizer ? 'Paid · please confirm' : `Paid · waiting for ${first(c.organizer_name)}`, 'wait', 'clock') };
+    if (round.paid_out_at) return { key: 'ok', tag: '' };
+    return todayIso > due ? { key: 'late', tag: bcTag(`Late · due ${c.due_day} ${bcMonth(round.month).split(' ')[0]}`, 'late', 'alert') } : { key: 'due', tag: bcTag('Not yet', 'due') };
+  }
+
+  function renderRunning() {
+    const c = d.committee;
+    const me = d.me;
+    const org = me.is_organizer;
+    const cur = d.rounds.find((r) => !r.paid_out_at);
+    const pot = c.amount * c.member_count;
+    const members = d.members.filter((m) => m.status === 'approved');
+    const byId = Object.fromEntries(d.members.map((m) => [m.member_id, m]));
+    let roundCard = '';
+    if (cur) {
+      const states = members.map((m) => ({ m, s: payState(m, cur) }));
+      const count = (k) => states.filter((x) => x.s.key === k).length;
+      const receiver = cur.receiver_member_id ? byId[cur.receiver_member_id] : null;
+      const mine = states.find((x) => x.m.is_me);
+      const myTop = mine.s.key === 'ok' ? bcTag('You\'ve paid · confirmed', 'ok', 'check') : mine.s.key === 'wait'
+        ? bcTag(org ? 'You\'ve paid · confirm it below' : `You've paid · ${first(c.organizer_name)} will confirm`, 'wait', 'clock')
+        : `<button class="ft-btn" data-act="paid">${icon('check', 18)}I've paid ${money(c.amount)}</button>`;
+      const had = new Set(d.rounds.filter((r) => r.paid_out_at).map((r) => r.receiver_member_id));
+      const allIn = cur.confirmed === members.length;
+      const chooser = org && !receiver ? `<select class="ft-input" id="receiver" aria-label="Who gets the pot this round" style="height:40px">
+          <option value="">Choose who gets it…</option>${members.filter((m) => !had.has(m.member_id)).map((m) => `<option value="${m.member_id}">${esc(nameOf(m))}</option>`).join('')}</select>` : '';
+      roundCard = `<section class="ft-card d-flex flex-column gap-3" style="flex:3 1 600px">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div><h2 class="ft-label">This round · ${bcMonth(cur.month, true)}</h2>
+            <p class="ft-muted mt-1">Everyone pays ${money(c.amount)} by ${c.due_day} ${bcMonth(cur.month, true).split(' ')[0]}. Only ${org ? 'you (the organizer)' : `${esc(first(c.organizer_name))} (the organizer)`} can confirm payments${org ? ' and pay out' : ''}.</p></div>
+          ${myTop}
+        </div>
+        <div class="d-grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+          <div class="ft-receiver">${receiver ? bcAvatar(receiver.display_name, colour(receiver)) : `<span class="ft-av" style="background:rgba(255,255,255,.12)">${icon('users', 22)}</span>`}
+            <div style="min-width:0"><p class="m-0" style="font-size:12px;color:#CBD5E1">Gets the pot this round</p>
+              <p class="m-0 mt-1 fw-semibold" style="font-size:18px">${receiver ? esc(nameOf(receiver)) : (org ? 'You choose' : `${esc(first(c.organizer_name))} chooses`)}</p>
+              <p class="m-0 mt-1" style="font-size:13px;color:#CBD5E1">${icon('gift', 14)} ${money(pot)} · paid out on ${c.payout_day} ${bcMonth(cur.month).split(' ')[0]}</p></div></div>
+          <div class="ft-pot">
+            <div class="d-flex justify-content-between align-items-baseline"><p class="ft-big" style="font-size:28px">${money(cur.collected)}</p><span class="ft-muted">of ${money(pot)}</span></div>
+            <div class="bar" role="img" aria-label="${count('ok')} confirmed, ${count('wait')} waiting, ${count('late')} late, ${count('due')} not yet">
+              <span style="width:${pct(count('ok'), members.length)}%;background:var(--ft-accent)"></span><span style="width:${pct(count('wait'), members.length)}%;background:#A5B4FC"></span><span style="width:${pct(count('late'), members.length)}%;background:var(--ft-amber)"></span></div>
+            <div class="key"><span><i style="background:var(--ft-accent)"></i>${count('ok')} confirmed</span><span><i style="background:#A5B4FC"></i>${count('wait')} waiting</span>
+              <span><i style="background:var(--ft-amber)"></i>${count('late')} late</span><span><i style="background:#CBD5E1"></i>${count('due')} not yet</span></div>
+          </div>
+        </div>
+        <div>${states.map(({ m, s }) => `<div class="ft-mrow">${bcAvatar(m.display_name, colour(m))}
+            <div class="who"><p style="${m.is_me ? 'font-weight:600' : ''}">${esc(nameOf(m))}</p><p class="ft-muted mt-1">${m.is_guest ? `Not on FinTrack · ${org ? 'you mark it' : esc(first(c.organizer_name)) + ' marks it'}` : m.is_organizer ? 'Organizer' : m.turn_no ? `Turn ${m.turn_no}` : 'Member'}</p></div>
+            ${s.tag}
+            ${org && s.key !== 'ok' ? `<button class="ft-btn ${s.key === 'wait' ? '' : 'light'}" style="min-height:34px;font-size:13px;padding:0 12px" data-confirm="${m.member_id}">${s.key === 'wait' ? 'Confirm' : 'Mark paid'}</button>` : ''}
+            ${org && (s.key === 'late' || s.key === 'due') && !m.is_me ? `<button class="ft-iconbtn" style="width:36px;height:36px" aria-label="Remind ${esc(m.display_name)} on WhatsApp" data-remind="${m.member_id}">${icon('share', 16)}</button>` : ''}
+          </div>`).join('')}</div>
+        ${org ? `<div class="d-flex flex-wrap gap-2 align-items-center justify-content-end pt-1">${chooser}
+          <button class="ft-btn mint" data-act="payout" ${allIn ? '' : 'disabled'}>${icon('gift', 18)}Pay out ${money(pot)}${receiver ? ` to ${esc(first(receiver.display_name))}` : ''}</button>
+          ${allIn ? '' : `<span class="ft-muted w-100 text-end">You can pay out once all ${members.length} payments are confirmed.</span>`}</div>` : ''}
+      </section>`;
+    }
+
+    // payout order
+    const orderRows = (c.payout_method === 'organizer' ? d.rounds.filter((r) => r.receiver_member_id) : d.rounds).map((r) => {
+      const m = byId[r.receiver_member_id];
+      const now = cur && r.round_id === cur.round_id;
+      const state = r.paid_out_at ? bcTag('Received', 'ok', 'check') : now ? bcTag('This round', 'ink', 'gift') : m?.is_me ? bcTag('Your turn', 'you', 'gift') : `<span class="ft-muted">${bcMonth(r.month)}</span>`;
+      return `<li class="${now ? 'now' : ''} ${m?.is_me && !r.paid_out_at && !now ? 'mine' : ''}"><span class="n">${r.round_no}</span>${bcAvatar(m.display_name, colour(m))}
+        <span class="flex-grow-1" style="font-size:14px;min-width:0;${m.is_me ? 'font-weight:600' : ''}">${esc(nameOf(m))}</span>${state}</li>`;
+    }).join('');
+    const myRound = d.rounds.find((r) => byId[r.receiver_member_id]?.is_me);
+    const paidBefore = myRound ? myRound.round_no * c.amount : 0;
+    const orderNote = myRound && !myRound.paid_out_at
+      ? `Your turn is <b>round ${myRound.round_no}, ${bcMonth(myRound.month, true)}</b>: you get ${money(pot)}. By then you'll have paid in ${money(paidBefore)}${myRound.round_no < c.member_count ? `, and you keep paying ${money(c.amount)} for the last ${c.member_count - myRound.round_no} round${c.member_count - myRound.round_no === 1 ? '' : 's'}` : ''}.`
+      : myRound ? `You received ${money(pot)} in round ${myRound.round_no}.` : 'The organizer chooses who gets the pot each month. Nobody can get it twice.';
+    const orderCard = `<section class="ft-card d-flex flex-column gap-3" style="flex:2 1 380px">
+      <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap"><h2 class="ft-label">Payout order</h2>
+        <span class="ft-pill">${icon(BC_METHODS[c.payout_method].icon, 14)}${c.payout_method === 'organizer' ? 'Chosen each month' : `${c.payout_method === 'draw' ? 'Drawn' : 'Set'} on ${bcDate(c.order_set_at, false)} · can't be changed`}</span></div>
+      ${orderRows ? `<ol class="ft-order">${orderRows}</ol>` : '<p class="ft-muted m-0">Nobody has received the pot yet.</p>'}
+      <div class="ft-iconbox">${icon('gift', 17)}<span>${orderNote}</span></div></section>`;
+
+    $('rowA').innerHTML = roundCard + orderCard;
+    $('rowB').innerHTML = linkCard(false) + activityCard() + rulesCard();
+  }
+
+  /** "Your money in this committee" and the linked account (BC-07). */
+  function linkCard(small) {
+    const c = d.committee;
+    const select = `<label class="d-flex flex-column gap-2" style="font-size:13px;color:#334155;line-height:1.45">
+        <span>Add my payments and my payout to FinTrack transactions (category "Committee") in:</span>
+        <select class="ft-input" id="linkAccount" style="height:40px"><option value="">Don't add them</option>
+          ${accounts.map((a) => `<option value="${a.account_id}" ${a.account_id === d.me.link_account_id ? 'selected' : ''}>${esc(a.account_name)}</option>`).join('')}</select></label>`;
+    if (small) return select;
+    const myPayments = d.rounds.flatMap((r) => r.payments).filter((p) => p.member_id === d.me.member_id);
+    const paidIn = myPayments.reduce((s, p) => s + Number(p.amount), 0);
+    const total = c.amount * c.member_count;
+    const myRound = d.rounds.find((r) => r.receiver_member_id === d.me.member_id);
+    return `<section class="ft-card d-flex flex-column gap-3" style="flex:1 1 300px">
+      <h2 class="ft-label">Your money in this committee</h2>
+      <div class="d-flex justify-content-between"><span class="ft-muted" style="font-size:13px">Paid in</span><b>${money(paidIn)}</b></div>
+      <div class="d-flex justify-content-between"><span class="ft-muted" style="font-size:13px">Still to pay</span><b>${money(Math.max(0, total - paidIn))}</b></div>
+      <div class="d-flex justify-content-between"><span class="ft-muted" style="font-size:13px">${myRound?.paid_out_at ? 'You received' : 'You\'ll receive'}</span>
+        <b style="color:#166534">${money(total)}${myRound ? ` · ${bcMonth(myRound.month)}` : ''}</b></div>
+      <div class="ft-pot p-0" style="background:transparent"><div class="bar" style="height:12px"><span style="width:${pct(paidIn, total)}%;background:var(--ft-accent)"></span></div></div>
+      ${select}</section>`;
+  }
+
+  function activityCard() {
+    return `<section class="ft-card d-flex flex-column gap-1" style="flex:1 1 300px">
+      <div class="d-flex justify-content-between align-items-center mb-1"><h2 class="ft-label">Activity</h2><span class="ft-pill">${icon('history', 14)}Saved by the database</span></div>
+      ${d.events.slice(0, 8).map((e) => `<div class="d-flex gap-2 py-2" style="border-bottom:1px solid var(--ft-bg)">
+        <span class="ft-cat" style="width:28px;height:28px;border-radius:50%">${icon('history', 14)}</span>
+        <div><p class="m-0" style="font-size:13px;line-height:1.4">${esc(e.message)}</p><p class="ft-muted mt-1">${ago(e.created_at)}</p></div></div>`).join('') || '<p class="ft-muted m-0">Nothing yet.</p>'}
+    </section>`;
+  }
+
+  /** Invite people: code, link, WhatsApp, a FinTrack e-mail, or a guest by name. */
+  function inviteDialog() {
+    const c = d.committee;
+    const link = bcInviteLink(c.invite_code);
+    const approved = d.members.filter((m) => m.status === 'approved').length;
+    const dlg = bcModal('Invite people', `
+      <p class="ft-muted m-0" style="font-size:13px;line-height:1.5">${approved} of ${c.member_count} have joined <b>${esc(c.name)}</b>. Share the code or the link; anyone with it can ask to join${d.me.is_organizer ? ', and you approve them' : ''}.</p>
+      <div style="border:1.5px dashed #CBD5E1;border-radius:16px;padding:18px" class="text-center d-flex flex-column gap-2 align-items-center">
+        <span class="ft-muted">Committee code</span>
+        <span style="font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;letter-spacing:.14em;color:var(--ft-ink)">${esc(c.invite_code)}</span>
+        <div class="d-flex gap-2"><button type="button" class="ft-btn light" style="min-height:38px;font-size:13px" data-x="code"><span data-i="copy" data-s="14"></span>Copy code</button>
+          <button type="button" class="ft-btn light" style="min-height:38px;font-size:13px" data-x="link"><span data-i="link" data-s="14"></span>Copy link</button></div>
+      </div>
+      <button type="button" class="ft-btn mint w-100" data-x="wa"><span data-i="share"></span>Share on WhatsApp</button>
+      ${d.me.is_organizer ? `<div class="ft-field"><label for="invEmail">On FinTrack? Invite them by e-mail</label>
+        <div class="d-flex gap-2"><input class="ft-input" id="invEmail" type="email" placeholder="name@example.com" autocomplete="off"><button type="button" class="ft-btn" data-x="email" style="background:var(--ft-ink)">Invite</button></div></div>
+      <div class="ft-field"><label for="invGuest">Not on FinTrack? Add them by name</label>
+        <div class="d-flex gap-2"><input class="ft-input" id="invGuest" placeholder="e.g. Khala Shabana" maxlength="100" autocomplete="off"><button type="button" class="ft-btn" data-x="guest" style="background:var(--ft-ink)"><span data-i="userplus"></span>Add</button></div>
+        <p class="ft-muted mt-1">Guests don't get the app; you mark their payments for them.</p></div>` : ''}`,
+    '<button type="button" class="ft-btn" data-bs-dismiss="modal">Done</button>', 460);
+    dlg.el.addEventListener('click', attempt(async (e) => {
+      const b = e.target.closest('[data-x]');
+      if (!b) return;
+      const x = b.dataset.x;
+      if (x === 'code') return bcCopy(c.invite_code, 'Code');
+      if (x === 'link') return bcCopy(link, 'Link');
+      if (x === 'wa') return bcWhatsApp(`Join my committee "${c.name}" on FinTrack: ${money(c.amount)} a month, ${c.member_count} people, starting ${bcMonth(c.start_month, true)}. Code: ${c.invite_code}\n${link}`);
+      if (x === 'email') {
+        const r = await api(`/committees/${id}/invite`, { method: 'POST', body: { email: dlg.el.querySelector('#invEmail').value.trim() } });
+        dlg.el.querySelector('#invEmail').value = '';
+        toast(`${r.display_name} is invited. They'll see it in FinTrack.`);
+      }
+      if (x === 'guest') {
+        const r = await api(`/committees/${id}/guests`, { method: 'POST', body: { display_name: dlg.el.querySelector('#invGuest').value.trim() } });
+        dlg.el.querySelector('#invGuest').value = '';
+        toast(`${r.display_name} added as a guest.`);
+      }
+      await load();
+    }));
+  }
+
+  document.addEventListener('change', attempt(async (e) => {
+    if (e.target.id !== 'linkAccount') return;
+    await api(`/committees/${id}/link`, { method: 'PUT', body: { account_id: e.target.value ? Number(e.target.value) : null } });
+    toast(e.target.value ? 'Your committee payments will be added to that account.' : 'Committee payments won\'t be added to your transactions.');
+    await load();
+  }));
+
+  document.addEventListener('click', attempt(async (e) => {
+    const b = e.target.closest('button');
+    if (!b || b.closest('.modal')) return;
+    const c = d.committee;
+    const cur = d.rounds.find((r) => !r.paid_out_at);
+    const member = (mid) => d.members.find((m) => String(m.member_id) === String(mid));
+    const act = b.dataset.act;
+    if (act === 'copycode') return bcCopy(c.invite_code, 'Code');
+    if (act === 'invite') return inviteDialog();
+    if (b.dataset.remind) {
+      const m = member(b.dataset.remind);
+      return bcWhatsApp(`Assalam o Alaikum ${first(m.display_name)}! A reminder for "${c.name}": ${money(c.amount)} for ${bcMonth(cur.month, true)} is due by the ${c.due_day}th. Thank you!`);
+    }
+    if (b.dataset.up || b.dataset.down) {
+      const i = Number(b.dataset.up ?? b.dataset.down);
+      const j = b.dataset.up ? i - 1 : i + 1;
+      [order[i], order[j]] = [order[j], order[i]];
+      renderForming();
+      document.querySelector(`[data-${b.dataset.up ? 'up' : 'down'}="${j}"]`)?.focus();
+      return;
+    }
+    if (act === 'accept') {
+      await api(`/committees/${id}/accept`, { method: 'POST' });
+      toast(`Welcome to ${c.name}!`);
+    } else if (act === 'leave') {
+      const what = d.me.status === 'invited' ? 'Say no to this invitation?' : d.me.status === 'requested' ? 'Cancel your request?' : 'Leave this committee?';
+      if (!await confirmAction({ title: what, text: `You can join again later with the code, while ${c.name} hasn't started.`, confirm: 'Yes' })) return;
+      await api(`/committees/${id}/members/${d.me.member_id}`, { method: 'DELETE' });
+      location.href = 'committees.html';
+      return;
+    } else if (act === 'delete') {
+      if (!await confirmAction({ title: 'Delete this committee?', text: `${c.name} and its member list will be deleted. Nobody has paid anything yet.` })) return;
+      await api(`/committees/${id}`, { method: 'DELETE' });
+      location.href = 'committees.html';
+      return;
+    } else if (act === 'start') {
+      const how = { draw: 'FinTrack will draw the payout order now. It can\'t be redrawn.', fixed: 'The order you set will be used. It can\'t be changed afterwards.', organizer: 'You\'ll choose who gets the pot each month.' }[c.payout_method];
+      if (!await confirmAction({ title: 'Start the committee?', text: `${how} Nobody can join or leave after this.`, confirm: 'Start', danger: false })) return;
+      await api(`/committees/${id}/start`, { method: 'POST', body: c.payout_method === 'fixed' ? { order } : {} });
+      toast(c.payout_method === 'draw' ? 'The order is drawn. Good luck everyone!' : 'The committee has started.');
+    } else if (act === 'paid') {
+      if (!await confirmAction({ title: 'Mark as paid?', text: `You paid ${money(c.amount)} for round ${cur.round_no}. ${d.me.is_organizer ? 'Confirm it in the list afterwards.' : `${first(c.organizer_name)} will confirm it.`}`, confirm: 'Yes, I\'ve paid', danger: false })) return;
+      await api(`/committees/${id}/rounds/${cur.round_id}/paid`, { method: 'POST' });
+      toast('Marked as paid.');
+    } else if (b.dataset.confirm) {
+      const m = member(b.dataset.confirm);
+      await api(`/committees/${id}/rounds/${cur.round_id}/confirm`, { method: 'POST', body: { member_id: m.member_id } });
+      toast(`${m.display_name}'s payment is confirmed.`);
+    } else if (act === 'payout') {
+      const chosen = $('receiver')?.value;
+      const receiver = cur.receiver_member_id ? member(cur.receiver_member_id) : chosen ? member(chosen) : null;
+      if (!receiver) { toast('Choose who gets the pot this round.', 'danger'); $('receiver')?.focus(); return; }
+      if (!await confirmAction({ title: `Pay out ${money(c.amount * c.member_count)}?`, text: `To ${receiver.display_name}, for round ${cur.round_no}. This is recorded and can't be undone.`, confirm: 'Pay out', danger: false })) return;
+      await api(`/committees/${id}/rounds/${cur.round_id}/payout`, { method: 'POST', body: { receiver_member_id: receiver.member_id } });
+      toast(`Paid out to ${receiver.display_name}.`);
+    } else if (b.dataset.approve) {
+      await api(`/committees/${id}/members/${b.dataset.approve}/approve`, { method: 'POST' });
+      toast(`${member(b.dataset.approve).display_name} is in.`);
+    } else if (b.dataset.remove) {
+      const m = member(b.dataset.remove);
+      if (!await confirmAction({ title: `Remove ${m.display_name}?`, text: 'They can ask to join again with the code.', confirm: 'Remove' })) return;
+      await api(`/committees/${id}/members/${m.member_id}`, { method: 'DELETE' });
+    } else return;
+    await load();
+    shell.refresh();
+  }));
+
+  if (!id) location.replace('committees.html');
+  load().then(() => {
+    if (new URLSearchParams(location.search).get('invite') && d.committee.status === 'forming') {
+      history.replaceState(null, '', `committee.html?id=${id}`);
+      inviteDialog();
+    }
+  }).catch((e) => {
+    $('head').innerHTML = `<p class="ft-empty m-0">${esc(e.message)} <a href="committees.html">Back to committees</a></p>`;
+  });
+</script>
+</body>
+</html>

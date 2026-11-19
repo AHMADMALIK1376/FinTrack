@@ -8,7 +8,9 @@
   --ft-muted: #5B6476;
   --ft-line: #E7ECF2;
   --ft-field: #DCE3EC;
-  --ft-bg: #F1F4F8;
+  --ft-bg: #F1F4F8;       /* soft fill inside cards (tags, icons, inputs) */
+  --ft-page: #E2E7EE;     /* the page behind the cards: a calm blue-grey, so white cards stand out */
+  --ft-shadow: #C3CCD9;   /* the darker half of the raised-card shadow */
   --ft-soft: #F5F7FA;
   --ft-green: #15803D;
   --ft-green-bg: #E3F6EC;
@@ -23,7 +25,7 @@
   --bs-link-color-rgb: 47, 111, 214;
   --bs-border-radius: 12px;
 }
-body { background: var(--ft-bg); color: var(--ft-text); }
+body { background: var(--ft-page); color: var(--ft-text); }
 a { color: var(--ft-brand); text-decoration: none; }
 a:hover { color: #1D4ED8; }
 h1, h2, h3 { color: var(--ft-text); }
@@ -74,7 +76,7 @@ h1, h2, h3 { color: var(--ft-text); }
 
 /* ---------- building blocks ---------- */
 .ft-card { background: #fff; border: 1px solid transparent; border-radius: 22px; padding: 22px; min-width: 0;
-  box-shadow: 15px 15px 30px #D6DDE7, -15px -15px 30px #FFFFFF; }   /* soft raised look on the light grey page */
+  box-shadow: 12px 12px 28px var(--ft-shadow), -12px -12px 28px rgba(255, 255, 255, .7); }   /* soft raised look on the blue-grey page */
 .ft-label { font-size: 15px; font-weight: 600; color: var(--ft-text); margin: 0; }
 .ft-muted { font-size: 12px; color: var(--ft-muted); margin: 0; }
 .ft-big { font-family: 'Space Grotesk', sans-serif; font-weight: 600; letter-spacing: -0.03em; color: var(--ft-text); margin: 0; line-height: 1; }
@@ -250,9 +252,9 @@ select.ft-input { appearance: auto; padding-right: 8px; }
 /* Cards: a soft raised shadow at rest; on hover it changes to a lifted shadow. Smaller cards also tilt a
    little in 3D towards the mouse (js/layout.js). The log-in page card and the sidebar stay still. */
 .ft-card, .ft-acct, .ft-goal-mini { transition: box-shadow .2s ease-in-out, transform .35s cubic-bezier(.2, .8, .2, 1); }
-.ft-main .ft-card:hover { box-shadow: 0 10px 20px rgba(0, 0, 0, .1); cursor: default; }
-.ft-acct { box-shadow: 15px 15px 30px #D6DDE7, -15px -15px 30px #FFFFFF; }
-.ft-acct:hover { box-shadow: 0 10px 20px rgba(0, 0, 0, .1); }
+.ft-main .ft-card:hover { box-shadow: 0 14px 28px rgba(15, 23, 42, .16); cursor: default; }
+.ft-acct { box-shadow: 12px 12px 28px var(--ft-shadow), -12px -12px 28px rgba(255, 255, 255, .7); }
+.ft-acct:hover { box-shadow: 0 14px 28px rgba(15, 23, 42, .16); }
 .ft-acct.ink:hover, .ft-acct.blue:hover { box-shadow: 0 12px 24px rgba(28, 43, 68, .3); }
 .ft-tilt, .ft-stat, .ft-acct, .ft-goal-mini, article.ft-card { transform-style: preserve-3d; will-change: transform; }
 
@@ -288,6 +290,71 @@ select.ft-input { appearance: auto; padding-right: 8px; }
 .ft-print-only { display: none; }
 
 /* Print or "Save as PDF": just the report, in black on white, no menus */
+/* ---- Committees (BC) ---- */
+.ft-tag.ok { background: var(--ft-green-bg); color: #166534; }
+.ft-tag.wait { background: #EEF2FF; color: #3730A3; }
+.ft-tag.late { background: var(--ft-amber-bg); color: var(--ft-amber); }
+.ft-tag.you { background: #EAF1FC; color: var(--ft-brand); }
+.ft-tag.ink { background: var(--ft-ink); color: #fff; }
+.ft-tag { display: inline-flex; align-items: center; gap: 6px; }
+.ft-rounds { display: flex; gap: 4px; }
+.ft-rounds span { flex: 1; height: 10px; border-radius: 999px; background: #E2E8F0; }
+.ft-rounds span.done { background: var(--ft-accent); }
+.ft-rounds span.now { background: var(--ft-brand); }
+.ft-rounds.lg span { height: 12px; }
+.ft-av { width: 36px; height: 36px; border-radius: 50%; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex: none; }
+.ft-stack { display: flex; align-items: center; }
+.ft-stack .ft-av { width: 30px; height: 30px; font-size: 11px; border: 2px solid #fff; margin-left: -8px; }
+.ft-stack .ft-av:first-child { margin-left: 0; }
+.ft-stack .more { background: var(--ft-bg); color: #334155; }
+.ft-bc-head { padding: 0; overflow: hidden; }
+.ft-bc-head .band { background: linear-gradient(135deg, var(--ft-brand), var(--ft-accent)); color: #fff; padding: 24px 28px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 20px; position: relative; overflow: hidden; }
+.ft-bc-head .band::before { content: ""; position: absolute; right: 120px; top: -90px; width: 260px; height: 260px; border-radius: 50%; border: 32px solid rgba(255, 255, 255, .12); }
+.ft-bc-head .band > * { position: relative; }
+.ft-bc-head h2 { margin: 4px 0 0; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 600; }
+.ft-bc-head .ft-big { color: #fff; font-size: 26px; margin-top: 4px; }
+.ft-bc-head .lab { margin: 0; font-size: 12px; opacity: .85; }
+.ft-bc-head .foot { padding: 16px 28px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+.ft-code { display: inline-flex; align-items: center; gap: 8px; border: 1px dashed #CBD5E1; border-radius: 12px; padding: 0 6px 0 12px; min-height: 44px; font-family: 'Space Grotesk', sans-serif; font-weight: 600; letter-spacing: .08em; }
+.ft-upper { text-transform: uppercase; }
+.ft-upper::placeholder, .ft-code-input::placeholder { text-transform: none; letter-spacing: normal; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 400; }
+.ft-upcoming .sub { display: none; }
+.ft-code-input { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600; letter-spacing: .12em; height: 54px; text-align: center; text-transform: uppercase; }
+.ft-receiver { border-radius: 18px; background: var(--ft-ink); color: #fff; padding: 18px; display: flex; gap: 14px; align-items: center; }
+.ft-receiver .ft-av { width: 54px; height: 54px; font-size: 16px; border: 3px solid rgba(255, 255, 255, .3); }
+.ft-pot { border-radius: 18px; background: var(--ft-bg); padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.ft-pot .bar { height: 14px; border-radius: 999px; display: flex; overflow: hidden; background: #E2E8F0; }
+.ft-pot .key { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: #334155; }
+.ft-pot .key i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 6px; }
+.ft-mrow { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--ft-bg); }
+.ft-mrow:last-child { border-bottom: 0; }
+.ft-mrow .who { flex: 1; min-width: 0; }
+.ft-mrow .who p:first-child { margin: 0; font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ft-order { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ft-order li { display: flex; align-items: center; gap: 12px; padding: 9px 10px; border-radius: 14px; }
+.ft-order li.now { background: #EAF1FC; }
+.ft-order li.mine { box-shadow: inset 0 0 0 2px var(--ft-brand); }
+.ft-order .n { width: 26px; font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: #5B6476; }
+.ft-order .ft-av { width: 32px; height: 32px; }
+.ft-choice { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ft-choice label { border: 1px solid var(--ft-line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; font-size: 13px; color: #334155; background: #fff; }
+.ft-choice label b { font-size: 13px; color: var(--ft-text); display: flex; align-items: center; gap: 6px; }
+.ft-choice input { position: absolute; opacity: 0; pointer-events: none; }
+.ft-choice label:has(input:checked) { border-color: var(--ft-brand); box-shadow: 0 0 0 3px rgba(47, 111, 214, .15); background: #F5F9FF; }
+.ft-choice label:has(input:focus-visible) { outline: 2px solid var(--ft-brand); outline-offset: 2px; }
+.ft-rule { display: flex; gap: 10px; font-size: 13px; color: #334155; align-items: flex-start; }
+@media (max-width: 575.98px) {
+  .ft-choice { grid-template-columns: 1fr; }
+  .ft-card.ft-bc-head { padding: 0; }
+  .ft-upcoming .c-col { display: none; }
+  .ft-upcoming .sub { display: block; font-size: 12px; margin-top: 2px; }
+  .ft-upcoming td { white-space: normal; padding: 10px 6px; }
+  .ft-upcoming td:last-child, .ft-upcoming .ft-tag { white-space: nowrap; }
+  .ft-upcoming th { padding: 10px 6px; }
+  .ft-bc-head .band, .ft-bc-head .foot { padding: 18px; }
+  .ft-bc-head h2 { font-size: 24px; }
+}
+
 @media print {
   @page { size: A4 landscape; margin: 12mm; }
   body { background: #fff; }

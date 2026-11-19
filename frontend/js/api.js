@@ -13,7 +13,16 @@ const auth = {
   },
   clear() { [localStorage, sessionStorage].forEach((s) => { s.removeItem('ft_token'); s.removeItem('ft_user'); }); },
   logout() { this.clear(); location.href = 'index.html'; },
-  requireLogin() { if (!this.token) location.replace('index.html'); },
+  requireLogin() {
+    if (this.token) return;
+    const here = location.pathname.split('/').pop() + location.search;   // e.g. committees.html?join=FAM-7K2Q
+    location.replace(here && !here.startsWith('dashboard.html') ? 'index.html?next=' + encodeURIComponent(here) : 'index.html');
+  },
+  /** Where to go after log-in: the page from ?next= if it is one of ours (never another site), else the dashboard. */
+  nextPage() {
+    const next = new URLSearchParams(location.search).get('next') || '';
+    return /^[a-z]+\.html(\?[\w=&%.-]*)?$/.test(next) ? next : 'dashboard.html';
+  },
 };
 
 /** Calls the PHP API. Throws an Error with the server's plain-English message when something is refused. */
