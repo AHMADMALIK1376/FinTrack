@@ -89,7 +89,7 @@
       ['Expense', money(expense), 'down', 'var(--ft-text)', `about ${money(expense / activeMonths)} a month`],
       ['Saved', (saved < 0 ? '−' : '') + money(Math.abs(saved)), 'wallet', saved < 0 ? 'var(--ft-red)' : 'var(--ft-text)', saved < 0 ? 'Spent more than earned' : 'Income minus expense'],
       ['Saving rate', income ? `${pct(saved, income)}%` : '–', 'target', 'var(--ft-text)', 'of income kept'],
-    ].map(([t, v, i, c, n]) => `<div class="ft-card ft-stat ft-keep"><div class="d-flex justify-content-between align-items-center"><p class="t">${t}</p><span style="color:${c}">${icon(i, 18)}</span></div>
+    ].map(([t, v, i, c, n]) => `<div class="ft-card ft-stat ft-keep"><div class="d-flex justify-content-between align-items-center"><p class="t">${t}</p><span class="ft-save soft" style="color:${c}">${icon(i, 18)}</span></div>
       <p class="ft-big" style="font-size:28px">${v}</p><p class="ft-muted">${n}</p></div>`).join('');
 
     const max = Math.max(...inc, ...exp, 1) * 1.15;

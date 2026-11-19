@@ -135,3 +135,29 @@ const shell = {
     return `<label class="ft-month">${icon('calendar', 18)}<span class="visually-hidden">Month</span><input type="month" id="${id}" value="${value}" max="2100-12"></label>`;
   },
 };
+
+/**
+ * Gentle 3D tilt for the smaller cards: they lean up to 5 degrees towards the mouse and lift a little.
+ * Works for cards added later too (one listener for the whole page). Off on touch screens and when the
+ * computer asks for reduced motion.
+ */
+(function cardTilt() {
+  const TILT = '.ft-tilt, .ft-stat, .ft-acct, .ft-goal-mini, article.ft-card';
+  const MAX = 5;   // degrees
+  if (!matchMedia('(hover: hover) and (pointer: fine)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let current = null;
+  const reset = (card) => { if (card) card.style.transform = ''; };
+  document.addEventListener('pointermove', (e) => {
+    const card = e.target.closest(TILT);
+    if (card !== current) { reset(current); current = card; }
+    if (!card || card.querySelector('.dropdown-menu.show')) { reset(card); return; }   // keep still while its menu is open
+    const r = card.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;    // -0.5 (left) .. 0.5 (right)
+    const y = (e.clientY - r.top) / r.height - 0.5;    // -0.5 (top) .. 0.5 (bottom)
+    card.style.transform = `perspective(900px) rotateX(${(-y * MAX).toFixed(2)}deg) rotateY(${(x * MAX).toFixed(2)}deg) translateY(-4px)`;
+  }, { passive: true });
+  document.addEventListener('pointerleave', () => { reset(current); current = null; });
+  document.addEventListener('shown.bs.dropdown', (e) => reset(e.target.closest(TILT)));   // straighten when its menu opens
+  window.addEventListener('blur', () => { reset(current); current = null; });
+})();
+
