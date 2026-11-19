@@ -61,9 +61,7 @@ h1, h2, h3 { color: var(--ft-text); }
 .ft-top .sub { margin: 4px 0 0; font-size: 14px; color: var(--ft-muted); }
 .ft-top-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .ft-iconbtn { width: 44px; height: 44px; border-radius: 14px; border: 1px solid var(--ft-line); background: #fff; display: inline-flex; align-items: center; justify-content: center; color: #334155; position: relative; flex: none; }
-.ft-iconbtn:hover { background: var(--ft-soft); }
 .ft-iconbtn.sm { width: 36px; height: 36px; border-radius: 12px; border: 0; background: transparent; }
-.ft-iconbtn.sm:hover { background: var(--ft-bg); }
 .ft-dot { position: absolute; top: 10px; right: 11px; width: 8px; height: 8px; border-radius: 50%; background: #DC2626; border: 2px solid #fff; }
 .ft-user { display: flex; align-items: center; gap: 10px; border: 1px solid var(--ft-line); background: #fff; border-radius: 16px; padding: 5px 12px 5px 5px; min-height: 44px; color: var(--ft-text); }
 .ft-avatar { width: 36px; height: 36px; border-radius: 12px; background: var(--ft-ink); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex: none; }
@@ -82,7 +80,6 @@ h1, h2, h3 { color: var(--ft-text); }
 .ft-big .dec { color: #9AA3B2; }
 .ft-pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--ft-line); border-radius: 999px; padding: 6px 10px; font-size: 12px; color: #334155; background: #fff; white-space: nowrap; }
 .ft-pill.warn { background: var(--ft-amber-bg); border-color: #FDE68A; color: var(--ft-amber); }
-button.ft-pill:hover { background: var(--ft-soft); }
 .ft-chip-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--ft-line); background: #fff; font-size: 13px; color: var(--ft-text); padding: 6px 10px; border-radius: 10px; }
 .ft-link { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ft-text); }
 .ft-link:hover { color: var(--ft-brand); }
@@ -96,10 +93,8 @@ select.ft-input { appearance: auto; padding-right: 8px; }
 .ft-seg button { border: 0; background: transparent; font-size: 13px; color: #475569; padding: 8px 14px; border-radius: 9px; min-height: 36px; flex: 1; }
 .ft-seg button[aria-pressed="true"], .ft-seg button[aria-selected="true"] { background: #fff; color: var(--ft-text); font-weight: 600; box-shadow: 0 1px 2px rgba(15, 23, 42, .08); }
 .ft-btn { min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px; background: var(--ft-brand); color: #fff; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-.ft-btn:hover { background: #2559B0; color: #fff; }
 .ft-btn.lg { min-height: 48px; border-radius: 14px; font-size: 15px; }
 .ft-btn.mint { background: var(--ft-accent); color: var(--ft-text); }
-.ft-btn.mint:hover { background: #2FB57B; }
 .ft-btn.light { background: var(--ft-bg); color: var(--ft-text); }
 .ft-btn.danger { background: var(--ft-red); }
 .ft-btn:disabled { opacity: .6; }
@@ -226,6 +221,38 @@ select.ft-input { appearance: auto; padding-right: 8px; }
 .ft-tip .track { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, .15); }
 .ft-tip .track div { height: 100%; border-radius: 999px; }
 
+/* ---------- hover effects ----------
+   Buttons: a diagonal band of colour sweeps across on hover (and on keyboard focus).
+   Each kind of button keeps its own colours: --sweep is the band, --sweep-text the text on it. */
+.ft-btn, .ft-submit, .ft-chip-btn, .ft-iconbtn, button.ft-pill, button.ft-dashed, .ft-user, .ft-tabbar a.add {
+  position: relative; isolation: isolate; overflow: hidden; cursor: pointer;
+  transition: color .35s ease, border-color .35s ease, box-shadow .35s ease;
+  --sweep: var(--ft-ink); --sweep-text: #fff;
+}
+.ft-btn::after, .ft-submit::after, .ft-chip-btn::after, .ft-iconbtn::after, button.ft-pill::after, button.ft-dashed::after, .ft-user::after, .ft-tabbar a.add::after {
+  content: ""; position: absolute; z-index: -1; left: -20%; right: -20%; top: 0; bottom: 0;
+  background: var(--sweep); transform: skewX(-45deg) scale(0, 1); transition: transform .5s ease;
+}
+:is(.ft-btn, .ft-submit, .ft-chip-btn, .ft-iconbtn, button.ft-pill, button.ft-dashed, .ft-user, .ft-tabbar a.add):is(:hover, :focus-visible):not(:disabled) { color: var(--sweep-text); }
+:is(.ft-btn, .ft-submit, .ft-chip-btn, .ft-iconbtn, button.ft-pill, button.ft-dashed, .ft-user, .ft-tabbar a.add):is(:hover, :focus-visible):not(:disabled)::after { transform: skewX(-45deg) scale(1, 1); }
+:is(.ft-btn, .ft-submit):disabled::after { display: none; }
+.ft-btn, .ft-submit { --sweep: var(--ft-ink); }                              /* Track blue -> navy */
+.ft-btn.mint { --sweep: var(--ft-ink); --sweep-text: #fff; }                 /* mint -> navy */
+.ft-btn.light { --sweep: var(--ft-brand); --sweep-text: #fff; }              /* light grey -> Track blue */
+.ft-btn.danger { --sweep: #7F1D1D; }                                         /* red -> dark red */
+.ft-chip-btn, .ft-iconbtn, button.ft-pill, .ft-user, button.ft-dashed { --sweep: #EAF1FC; --sweep-text: var(--ft-brand); }   /* white -> light blue */
+.ft-tabbar a.add { --sweep: var(--ft-ink); }
+:is(.ft-chip-btn, .ft-iconbtn, button.ft-pill, .ft-user):hover { border-color: #C9D8F0; }
+.ft-user:hover .mail { color: var(--ft-brand); }
+.ft-btn:active, .ft-submit:active { transform: translateY(1px); }
+
+/* Cards: a soft lift on hover; smaller cards also tilt a little in 3D towards the mouse (js/layout.js). */
+.ft-card, .ft-acct, .ft-goal-mini { transition: box-shadow .3s ease, border-color .3s ease, transform .35s cubic-bezier(.2, .8, .2, 1); }
+.ft-card:hover { box-shadow: 0 10px 28px rgba(15, 23, 42, .06); }
+.ft-tilt, .ft-stat, .ft-acct, .ft-goal-mini, article.ft-card { transform-style: preserve-3d; will-change: transform; }
+:is(.ft-tilt, .ft-stat, .ft-acct, .ft-goal-mini, article.ft-card):hover { box-shadow: 0 18px 40px rgba(15, 23, 42, .12); border-color: #D5DEEA; }
+.ft-acct.ink:hover, .ft-acct.blue:hover { box-shadow: 0 18px 40px rgba(28, 43, 68, .35); }
+
 /* ---------- reports ---------- */
 .ft-report-table .num { text-align: right; }
 .ft-report-table tfoot th { font-size: 14px; color: var(--ft-text); font-weight: 600; border-top: 2px solid var(--ft-line); border-bottom: 0; padding: 12px; }
@@ -295,7 +322,6 @@ select.ft-input { appearance: auto; padding-right: 8px; }
 .ft-check { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #334155; min-height: 44px; margin: 0; }
 .ft-check input { width: 18px; height: 18px; accent-color: var(--ft-brand); }
 .ft-submit { min-height: 52px; border-radius: 14px; border: 0; background: var(--ft-brand); color: #fff; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 20px rgba(47, 111, 214, .28); width: 100%; }
-.ft-submit:hover { background: #2559B0; }
 .ft-error { display: flex; gap: 10px; align-items: flex-start; background: #FEF2F2; color: var(--ft-red); border-radius: 14px; padding: 12px 14px; font-size: 14px; }
 
 /* Laptop and desktop: the whole log-in / sign-up page fits in one window, no scrolling.
