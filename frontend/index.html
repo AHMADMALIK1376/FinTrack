@@ -69,7 +69,7 @@
 <script src="js/icons.js"></script>
 <script src="js/api.js"></script>
 <script>
-  if (auth.token) location.replace('dashboard.html');
+  if (auth.token) location.replace(auth.nextPage());
 
   // icons
   chips.innerHTML = [['swap', 'Track every rupee'], ['pie', 'Budget each month'], ['target', 'Grow your savings']]
@@ -129,7 +129,7 @@
     try {
       const data = await api(MODES[mode].path, { method: 'POST', body });
       auth.save(data, remember.checked);
-      location.href = 'dashboard.html';
+      location.href = auth.nextPage();
     } catch (err) {
       showError(err.message);
       submitBtn.disabled = false;
