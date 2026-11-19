@@ -73,7 +73,8 @@ h1, h2, h3 { color: var(--ft-text); }
 .dropdown-item { border-radius: 10px; padding: 8px 12px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
 
 /* ---------- building blocks ---------- */
-.ft-card { background: #fff; border: 1px solid var(--ft-line); border-radius: 22px; padding: 22px; min-width: 0; }
+.ft-card { background: #fff; border: 1px solid transparent; border-radius: 22px; padding: 22px; min-width: 0;
+  box-shadow: 15px 15px 30px #D6DDE7, -15px -15px 30px #FFFFFF; }   /* soft raised look on the light grey page */
 .ft-label { font-size: 15px; font-weight: 600; color: var(--ft-text); margin: 0; }
 .ft-muted { font-size: 12px; color: var(--ft-muted); margin: 0; }
 .ft-big { font-family: 'Space Grotesk', sans-serif; font-weight: 600; letter-spacing: -0.03em; color: var(--ft-text); margin: 0; line-height: 1; }
@@ -246,12 +247,37 @@ select.ft-input { appearance: auto; padding-right: 8px; }
 .ft-user:hover .mail { color: var(--ft-brand); }
 .ft-btn:active, .ft-submit:active { transform: translateY(1px); }
 
-/* Cards: a soft lift on hover; smaller cards also tilt a little in 3D towards the mouse (js/layout.js). */
-.ft-card, .ft-acct, .ft-goal-mini { transition: box-shadow .3s ease, border-color .3s ease, transform .35s cubic-bezier(.2, .8, .2, 1); }
-.ft-card:hover { box-shadow: 0 10px 28px rgba(15, 23, 42, .06); }
+/* Cards: a soft raised shadow at rest; on hover it changes to a lifted shadow. Smaller cards also tilt a
+   little in 3D towards the mouse (js/layout.js). The log-in page card and the sidebar stay still. */
+.ft-card, .ft-acct, .ft-goal-mini { transition: box-shadow .2s ease-in-out, transform .35s cubic-bezier(.2, .8, .2, 1); }
+.ft-main .ft-card:hover { box-shadow: 0 10px 20px rgba(0, 0, 0, .1); cursor: default; }
+.ft-acct { box-shadow: 15px 15px 30px #D6DDE7, -15px -15px 30px #FFFFFF; }
+.ft-acct:hover { box-shadow: 0 10px 20px rgba(0, 0, 0, .1); }
+.ft-acct.ink:hover, .ft-acct.blue:hover { box-shadow: 0 12px 24px rgba(28, 43, 68, .3); }
 .ft-tilt, .ft-stat, .ft-acct, .ft-goal-mini, article.ft-card { transform-style: preserve-3d; will-change: transform; }
-:is(.ft-tilt, .ft-stat, .ft-acct, .ft-goal-mini, article.ft-card):hover { box-shadow: 0 18px 40px rgba(15, 23, 42, .12); border-color: #D5DEEA; }
-.ft-acct.ink:hover, .ft-acct.blue:hover { box-shadow: 0 18px 40px rgba(28, 43, 68, .35); }
+
+/* The small icon badge: turns 10 degrees and grows a little when its card is hovered */
+.ft-save { width: 36px; height: 36px; border-radius: 10px; background: #FFFFFF; display: inline-flex; align-items: center; justify-content: center;
+  flex: none; color: var(--ft-ink); transition: transform .2s ease-in-out, color .2s ease-in-out; }
+.ft-save.soft { background: var(--ft-bg); }
+:is(.ft-card, .ft-acct, .ft-goal-mini):hover :is(.ft-save, .ico, .ft-goal-icon), .ft-save:hover { transform: scale(1.1) rotate(10deg); }
+:is(.ft-card, .ft-acct, .ft-goal-mini):hover .ft-save { color: var(--ft-brand); }
+.ft-acct .ico, .ft-goal-icon { transition: transform .2s ease-in-out; }
+
+/* A pale mint pill with an icon, for short helpful lines (the goal's saving plan) */
+.ft-iconbox { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: #E3FFF4; color: #1D7A56; font-size: 13px; font-weight: 500; line-height: 1.35; }
+.ft-iconbox .ft-icon { color: var(--ft-green); }
+
+/* Savings goal card: a gradient top in the FinTrack colours with the goal's badge, then the text */
+.ft-goal-card { padding: 0; display: flex; flex-direction: column; }
+.ft-goal-card .top { height: 92px; border-radius: 22px 22px 0 0; background: linear-gradient(135deg, var(--ft-brand), var(--ft-accent));
+  display: flex; align-items: flex-start; justify-content: space-between; padding: 16px 16px 0; position: relative; overflow: hidden; }
+.ft-goal-card .top::before { content: ""; position: absolute; right: -40px; bottom: -70px; width: 170px; height: 170px; border-radius: 50%; border: 22px solid rgba(255, 255, 255, .14); }
+.ft-goal-card .top .ft-iconbtn.sm { color: #fff; position: relative; }
+.ft-goal-card .top .ft-iconbtn.sm:hover { color: var(--ft-brand); }
+.ft-goal-card .top .ft-save { position: relative; box-shadow: 0 6px 16px rgba(15, 23, 42, .15); }
+.ft-goal-card .body { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 14px; }
+.ft-goal-card h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--ft-text); }
 
 /* ---------- reports ---------- */
 .ft-report-table .num { text-align: right; }
@@ -268,7 +294,7 @@ select.ft-input { appearance: auto; padding-right: 8px; }
   .ft-side, .ft-tabbar, .ft-top-actions, .ft-phone-head, .visually-hidden-focusable, .toast-container { display: none !important; }
   .ft-app { display: block; padding: 0; }
   .ft-main { gap: 12px; }
-  .ft-card { border: 1px solid #CBD5E1; border-radius: 10px; padding: 12px; box-shadow: none; }
+  .ft-card { border: 1px solid #CBD5E1; border-radius: 10px; padding: 12px; box-shadow: none !important; }
   .ft-keep, tr { break-inside: avoid; }
   .ft-print-only { display: block; font-size: 12px; color: #475569; margin: 0; }
   .ft-flow .bars { height: 80px !important; }

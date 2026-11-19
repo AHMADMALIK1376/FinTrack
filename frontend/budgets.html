@@ -65,7 +65,7 @@
       ['Spent', money(spent), 'down', limit ? `${pct(spent, limit)}% of budget` : 'No budgets yet'],
       ['Left to spend', money(left), 'wallet', progress.daysLeft ? `for ${progress.daysLeft} more day${progress.daysLeft === 1 ? '' : 's'}` : monthName(month)],
       ['Saved in goals', money(savedTotal), 'target', `${goals.length} goal${goals.length === 1 ? '' : 's'}`],
-    ].map(([t, v, i, n]) => `<div class="ft-card ft-stat"><div class="d-flex justify-content-between align-items-center"><p class="t">${t}</p><span style="color:#334155">${icon(i, 18)}</span></div>
+    ].map(([t, v, i, n]) => `<div class="ft-card ft-stat"><div class="d-flex justify-content-between align-items-center"><p class="t">${t}</p><span class="ft-save soft" style="color:#334155">${icon(i, 18)}</span></div>
       <p class="ft-big" style="font-size:28px">${v}</p><p class="ft-muted">${n}</p></div>`).join('');
 
     // budget form: expense categories, ones without a budget first
@@ -121,25 +121,27 @@
         const months = Math.max(1, (end.getFullYear() - now.getFullYear()) * 12 + end.getMonth() - now.getMonth());
         plan = end < now ? 'The deadline has passed' : `Save ${money(Math.ceil(remaining / months))} a month for ${months} month${months === 1 ? '' : 's'}`;
       } else if (remaining > 0) plan = `${money(remaining)} to go`;
-      return `<article class="ft-card d-flex flex-column gap-3">
-        <div class="d-flex align-items-center gap-3">
-          <span class="ft-goal-icon" style="width:44px;height:44px;border-radius:14px">${icon(goalIcon(x.goal_name), 22)}</span>
-          <div class="flex-grow-1" style="min-width:0"><h3 class="m-0 text-truncate" style="font-size:15px;font-weight:600">${esc(x.goal_name)}</h3><p class="ft-muted mt-1">${x.deadline ? 'By ' + dateLabel(x.deadline) : 'No deadline'}</p></div>
+      return `<article class="ft-card ft-goal-card">
+        <div class="top">
           <div class="dropdown"><button class="ft-iconbtn sm" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Options for ${esc(x.goal_name)}">${icon('dots', 18)}</button>
-            <ul class="dropdown-menu dropdown-menu-end"><li><button class="dropdown-item text-danger" type="button" onclick="deleteGoal(${i})">${icon('trash', 16)}Delete goal</button></li></ul></div>
+            <ul class="dropdown-menu"><li><button class="dropdown-item text-danger" type="button" onclick="deleteGoal(${i})">${icon('trash', 16)}Delete goal</button></li></ul></div>
+          <span class="ft-save" aria-hidden="true">${icon(goalIcon(x.goal_name), 18)}</span>
         </div>
-        <div class="d-flex align-items-center gap-4">
-          <div class="ft-ring" role="img" aria-label="${p}% saved" style="background:conic-gradient(var(--ft-accent) 0 ${p}%, #EEF2F7 ${p}% 100%)">
-            <div><span class="ft-big" style="font-size:24px">${p}%</span><span class="ft-muted" style="font-size:11px">saved</span></div></div>
-          <div class="d-flex flex-column gap-2" style="min-width:0">
-            <p class="ft-big" style="font-size:24px">${money(x.saved_amount)}</p><p class="ft-muted">of ${money(x.target_amount)}</p>
-            <span class="ft-pill mt-1" style="white-space:normal">${icon(remaining > 0 ? 'calendar' : 'check', 14)}${plan}</span>
+        <div class="body">
+          <div style="min-width:0"><h3 class="text-truncate">${esc(x.goal_name)}</h3><p class="ft-muted mt-1">${x.deadline ? 'By ' + dateLabel(x.deadline) : 'No deadline'} · ${money(x.target_amount)} target</p></div>
+          <div class="d-flex align-items-center gap-4">
+            <div class="ft-ring" role="img" aria-label="${p}% saved" style="width:96px;height:96px;background:conic-gradient(var(--ft-accent) 0 ${p}%, #EEF2F7 ${p}% 100%)">
+              <div style="width:72px;height:72px"><span class="ft-big" style="font-size:21px">${p}%</span><span class="ft-muted" style="font-size:11px">saved</span></div></div>
+            <div class="d-flex flex-column gap-1" style="min-width:0">
+              <p class="ft-big" style="font-size:24px">${money(x.saved_amount)}</p><p class="ft-muted">saved of ${money(x.target_amount)}</p>
+            </div>
           </div>
+          <div class="ft-iconbox">${icon(remaining > 0 ? 'calendar' : 'check', 17)}<span>${plan}</span></div>
+          <form class="d-flex gap-2" onsubmit="addSavings(event, ${i})" novalidate>
+            <input aria-label="Amount to add to ${esc(x.goal_name)}" class="ft-input" inputmode="decimal" placeholder="Add savings (Rs)" style="flex:1" ${remaining > 0 ? '' : 'disabled'} autocomplete="off">
+            <button class="ft-btn mint" ${remaining > 0 ? '' : 'disabled'}>Add</button>
+          </form>
         </div>
-        <form class="d-flex gap-2" onsubmit="addSavings(event, ${i})" novalidate>
-          <input aria-label="Amount to add to ${esc(x.goal_name)}" class="ft-input" inputmode="decimal" placeholder="Add savings (Rs)" style="flex:1" ${remaining > 0 ? '' : 'disabled'} autocomplete="off">
-          <button class="ft-btn mint" ${remaining > 0 ? '' : 'disabled'}>Add</button>
-        </form>
       </article>`;
     }).join('') + `<button class="ft-dashed" type="button" id="newGoalBtn" onclick="newGoal()"><span class="plus">${icon('plus', 22)}</span>
       <span class="fw-semibold" style="font-size:14px">New savings goal</span><span class="ft-muted">A target, and a date if you like</span></button>`;
