@@ -37,6 +37,7 @@ database itself** (keys, constraints, triggers, views, functions and transaction
 | 🏷️ **Categories** | Income and expense types such as Salary, Food, Rent and Bills. New users get a starter set. |
 | 💸 **Transactions** | Add, edit, delete, search and filter income and expenses by month, type and category. |
 | 🎯 **Budgets & goals** | Monthly spending limit per category, with progress bars, plus savings goals with a target and deadline. |
+| 🤝 **Committees (BC)** | Save together with family and friends: everyone pays the same amount each month and each month one person gets the whole pot. Start one, invite people with a code or a WhatsApp link, add guests who aren't on FinTrack, draw the payout order, and track who has paid. Payments and payouts can go straight into your FinTrack transactions. |
 | 📊 **Dashboard & reports** | Total balance, this month's income and expense, a 6-month money-flow chart, budget usage, savings goals and budget warnings from Shan, our snow-leopard mascot. A **Reports** page shows the whole year by month and by category, compares each category with the average FinTrack user, and prints on two pages. |
 
 ## Database design
@@ -55,6 +56,7 @@ transaction belongs to one account and one category.
 - **Stored procedure + atomic transaction:** `transfer_money(from, to, amount)` writes both sides of a transfer as one unit; it fully succeeds or fully fails.
 - **Audit log:** one generic `SECURITY DEFINER` trigger writes every INSERT, UPDATE and DELETE on transactions, accounts and budgets to an append-only `audit_log` (old and new row as JSONB, whose data it is, and who changed it). The website shows it as an **Activity** list.
 - **Roles and privileges:** the website connects as `fintrack_app`, which can work with data but cannot drop or alter tables or touch the audit log; `fintrack_report` can only read the report views.
+- **Committees:** `12_committees.sql` adds five tables (`committees`, `committee_members`, `committee_rounds`, `committee_payments`, `committee_events`), three enum types and the `committee_round_status` view. The database itself keeps committees fair: a trigger refuses more members than places (locking the committee row so two people can't take the last place at once), `UNIQUE` constraints give every member one turn, `start_committee()` draws or sets the order once under `SELECT … FOR UPDATE`, another trigger refuses a payout until every payment is confirmed (and never twice), and the history is append-only like the audit log.
 - **Indexes:** on `transactions(account_id, txn_date)`, `transactions(category_id)` and the `user_id` columns, to keep reports fast.
 
 See [`database/`](database) for the SQL scripts and some queries to try.
@@ -96,8 +98,9 @@ FinTrack/
 │   ├── 09_recurring.sql       recurring transactions and post_due_recurring()
 │   ├── 10_reports.sql         materialized view of FinTrack-wide averages + refresh_reports()
 │   ├── 11_indexes.sql         index from the performance study
+│   ├── 12_committees.sql      committees (BC): members, rounds, payments, the one-time draw
 │   ├── perf/                  100,000+ row performance test (generate.sql, explain.sql)
-│   ├── demo/                  two-window pgAdmin demo: transfers at the same moment
+│   ├── demo/                  two-window pgAdmin demo: transfers at the same moment; sample committees
 │   └── tests/                 database tests (run in pgAdmin or with npm test)
 ├── backend/               PHP REST API
 │   ├── .env.example           copy to .env and fill in
@@ -108,7 +111,7 @@ FinTrack/
 │       ├── db.php             PDO connection and "run as this user" helpers (audit log)
 │       ├── jwt.php            login tokens (HS256)
 │       ├── env.php, http.php  settings from .env, JSON in and out
-│       └── routes/            auth, accounts, categories, transactions, budgets, goals, reports, activity
+│       └── routes/            auth, accounts, categories, transactions, budgets, goals, reports, activity, committees
 ├── frontend/              the website
 │   ├── index.html             log in / register
 │   ├── dashboard.html         balance, income, expense, money flow, budget usage, goals
@@ -116,9 +119,12 @@ FinTrack/
 │   ├── transactions.html      list, filter, add, edit, delete
 │   ├── accounts.html          accounts, transfers, categories
 │   ├── budgets.html           budgets and savings goals
+│   ├── committees.html        your committees, what's coming up, invitations, join with a code
+│   ├── committee.html         one committee: this round, payout order, members, history
 │   ├── css/style.css          FinTrack theme
 │   ├── js/api.js              shared API and helper code
 │   ├── js/layout.js           sidebar, top bar, Shan's tips, phone tab bar
+│   ├── js/committees.js       shared committee pieces: avatars, round bar, start and join pop-ups
 │   ├── assets/                logo, Shan the mascot, log-in animation (SVG)
 │   └── vendor/                Bootstrap (works offline)
 └── docs/                  proposal, diagrams, logo, screenshots
@@ -136,15 +142,16 @@ FinTrack/
 
 1. Open pgAdmin 4, right-click **Databases → Create → Database…** and name it `fintrack`.
 2. Select `fintrack`, open **Tools → Query Tool**.
-3. Open and run (F5) each file from the `database/` folder **in order**: `01_schema.sql`, `02_triggers.sql`, `03_views_functions.sql`, `04_seed.sql` (sample data), `05_audit.sql` (audit log), `06_roles.sql` (the `fintrack_app` and `fintrack_report` roles), `07_types.sql` (FinTrack's own data types), `08_login_attempts.sql` (log-in limit), `09_recurring.sql` (recurring transactions), `10_reports.sql` (report averages) and `11_indexes.sql`.
+3. Open and run (F5) each file from the `database/` folder **in order**: `01_schema.sql`, `02_triggers.sql`, `03_views_functions.sql`, `04_seed.sql` (sample data), `05_audit.sql` (audit log), `06_roles.sql` (the `fintrack_app` and `fintrack_report` roles), `07_types.sql` (FinTrack's own data types), `08_login_attempts.sql` (log-in limit), `09_recurring.sql` (recurring transactions), `10_reports.sql` (report averages), `11_indexes.sql` and `12_committees.sql` (committees).
+To try committees with sample data, also run `database/demo/committees_demo.sql`, then log in as `demo@fintrack.pk` / `demo1234`.
 
-**Already have a `fintrack` database from an earlier step?** Run just the files you don't have yet, in order. Since step 5: `03_views_functions.sql` (faster `check_budget()`), `10_reports.sql` and `11_indexes.sql`. Your data stays.
+**Already have a `fintrack` database from an earlier step?** Run just the files you don't have yet, in order. Since step 5: `03_views_functions.sql` (faster `check_budget()`), `10_reports.sql` and `11_indexes.sql`. For committees: `12_committees.sql` (and `demo/committees_demo.sql` for sample committees). Your data stays.
 
 Or from a terminal:
 
 ```bash
 createdb -U postgres fintrack
-for f in database/0*.sql; do psql -U postgres -d fintrack -f "$f"; done
+for f in database/[0-9][0-9]_*.sql; do psql -U postgres -d fintrack -f "$f"; done
 ```
 
 ### 3. Configure and start the server
@@ -213,6 +220,17 @@ All routes except `/api/auth/*` need the header `Authorization: Bearer <token>`.
 | GET | `/api/reports/dashboard?month=` | Totals, charts data and budget warnings |
 | GET | `/api/reports/year?year=2026` | The year by month and by category, and the FinTrack average per category |
 | GET | `/api/activity?limit=20` | The user's audit log as plain sentences, newest first |
+| GET / POST | `/api/committees` | Your committees and invitations / start one `{ name, amount, member_count, start_month: "2026-12", due_day, payout_day, payout_method: draw\|fixed\|organizer }` |
+| GET | `/api/committees/code?code=FAM-7K2Q` | Preview a committee before joining |
+| POST | `/api/committees/join` | Ask to join `{ code }` (accepts an invitation straight away) |
+| GET / DELETE | `/api/committees/:id` | Everything a member sees / delete (organizer, before the start) |
+| POST | `/api/committees/:id/accept` | Accept an invitation |
+| POST | `/api/committees/:id/invite` · `/guests` | Organizer: invite a FinTrack user `{ email }` · add a guest `{ display_name }` |
+| POST / DELETE | `/api/committees/:id/members/:member/approve` · `/members/:member` | Organizer approves a request / remove someone, leave, or say no (before the start) |
+| POST | `/api/committees/:id/start` | Organizer: draw or set the order `{ order?: [member ids] }` and create the rounds |
+| PUT | `/api/committees/:id/link` | Add my payments and payout to an account `{ account_id \| null }` |
+| POST | `/api/committees/:id/rounds/:round/paid` | "I've paid" for the current round |
+| POST | `/api/committees/:id/rounds/:round/confirm` · `/payout` | Organizer: confirm a payment `{ member_id }` · pay out the pot `{ receiver_member_id? }` |
 
 ## Screenshots
 
@@ -221,8 +239,10 @@ All routes except `/api/auth/*` need the header `Authorization: Bearer <token>`.
 | ![Login](docs/screenshots/login.png) | ![Transactions](docs/screenshots/transactions.png) |
 | **Accounts** | **Budgets & goals** |
 | ![Accounts](docs/screenshots/accounts.png) | ![Budgets](docs/screenshots/budgets.png) |
-| **Reports** | |
-| ![Reports](docs/screenshots/reports.png) | |
+| **Reports** | **Committees** |
+| ![Reports](docs/screenshots/reports.png) | ![Committees](docs/screenshots/committees.png) |
+| **A committee** | |
+| ![A committee](docs/screenshots/committee.png) | |
 
 On a phone the sidebar becomes a bottom tab bar with a big "+" for adding a transaction:
 

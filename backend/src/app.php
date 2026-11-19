@@ -16,7 +16,7 @@ foreach (glob(__DIR__ . '/routes/*.php') as $file) {
 
 /**
  * The route table: [method, path pattern, handler, needs log-in].
- * {id} in a pattern matches a number and is passed to the handler.
+ * Each {id} in a pattern matches a number and is passed to the handler, in order.
  */
 function routes(): array
 {
@@ -51,6 +51,22 @@ function routes(): array
         ['GET', '/api/reports/dashboard', 'reports_dashboard', true],
         ['GET', '/api/reports/year', 'reports_year', true],
         ['GET', '/api/activity', 'activity_list', true],
+        ['GET', '/api/committees', 'committees_list', true],
+        ['POST', '/api/committees', 'committees_create', true],
+        ['GET', '/api/committees/code', 'committees_find_code', true],
+        ['POST', '/api/committees/join', 'committees_join', true],
+        ['GET', '/api/committees/{id}', 'committees_get', true],
+        ['DELETE', '/api/committees/{id}', 'committees_delete', true],
+        ['POST', '/api/committees/{id}/accept', 'committees_accept', true],
+        ['POST', '/api/committees/{id}/invite', 'committees_invite', true],
+        ['POST', '/api/committees/{id}/guests', 'committees_add_guest', true],
+        ['POST', '/api/committees/{id}/members/{id}/approve', 'committees_approve', true],
+        ['DELETE', '/api/committees/{id}/members/{id}', 'committees_remove_member', true],
+        ['POST', '/api/committees/{id}/start', 'committees_start', true],
+        ['PUT', '/api/committees/{id}/link', 'committees_link', true],
+        ['POST', '/api/committees/{id}/rounds/{id}/paid', 'committees_mark_paid', true],
+        ['POST', '/api/committees/{id}/rounds/{id}/confirm', 'committees_confirm', true],
+        ['POST', '/api/committees/{id}/rounds/{id}/payout', 'committees_payout', true],
     ];
 }
 
@@ -128,6 +144,7 @@ function send_error(Throwable $error): void
             'category_kind' => 'Choose whether the category is income or expense.',
             'money_pkr' => 'Amounts can be at most Rs 999,999,999.99.',
             'recurrence_kind' => 'Choose how often it repeats: weekly or monthly.',
+            'payout_kind' => 'Choose how the payout order is decided: lucky draw, fixed order, or the organizer chooses.',
         ];
         foreach ($typeMessages as $type => $message) {
             if (in_array($state, ['22P02', '23514'], true) && str_contains($text, $type)) {
