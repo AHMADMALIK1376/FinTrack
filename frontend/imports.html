@@ -128,7 +128,25 @@
     renderSetup(key);
   }
 
+  // Inside the FinTrack Android app: the phone itself catches bank SMS (mobile/android, FinTrackSms)
+  const phoneSms = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()
+    ? window.Capacitor.Plugins.FinTrackSms : null;
+
+  async function renderPhoneSetup(key) {
+    const st = await phoneSms.status();
+    const on = st.enabled && st.permission && key.active;
+    $('keyTag').innerHTML = on ? bcTag('On', 'ok', 'check') : bcTag('Off', 'due');
+    $('setup').innerHTML = on
+      ? `<div class="ft-iconbox">${icon('phone', 17)}<span><b>Automatic SMS is on.</b> New JazzCash, Easypaisa and bank SMS on this phone come to your inbox by themselves${st.lastSentAt ? `; the last one came ${when(st.lastSentAt)}` : ''}. Personal messages and codes never leave the phone.</span></div>
+         ${st.lastError ? `<p class="small text-danger m-0" role="alert">${esc(st.lastError)}</p>` : ''}
+         <button class="ft-btn light" style="min-height:38px;font-size:13px" data-key="phone-off">Turn off automatic SMS</button>`
+      : `<p class="m-0" style="font-size:13px;line-height:1.55;color:#334155"><b>Let this phone send your bank SMS to FinTrack.</b> Android asks once for permission to receive SMS. FinTrack then forwards only messages from banks and wallets that contain an amount, never personal messages or codes, and you still check each one here before it's added.</p>
+         <button class="ft-btn" data-key="phone-on">${icon('phone', 18)}Turn on automatic SMS</button>
+         ${st.enabled && !key.active ? '<p class="ft-muted m-0" style="font-size:12px">Your SMS address was turned off on the website. Turn it on again here.</p>' : ''}`;
+  }
+
   function renderSetup(key) {
+    if (phoneSms) return renderPhoneSetup(key);
     const url = freshPath ? siteOrigin() + freshPath : null;
     const local = !API_BASE && /^(localhost|127\.|\[::1\])/.test(location.hostname);
     $('keyTag').innerHTML = key.active ? bcTag('On', 'ok', 'check') : bcTag('Off', 'due');
@@ -196,7 +214,22 @@
     if (!b || b.closest('.modal')) return;
     if (b.dataset.try) return tryDialog();
     if (b.dataset.key === 'copy') return bcCopy(siteOrigin() + freshPath, 'Address');
-    if (b.dataset.key === 'new') {
+    if (b.dataset.key === 'phone-on') {
+      b.disabled = true;
+      try {
+        const { path } = await api('/sms/key', { method: 'POST' });   // a fresh private address, kept only on this phone
+        await phoneSms.enable({ url: siteOrigin() + path });
+        toast('Automatic SMS is on. New bank SMS will appear here.');
+      } catch (ex) {
+        await api('/sms/key', { method: 'DELETE' }).catch(() => {});
+        toast(/permission/i.test(ex.message || '') ? 'FinTrack needs the SMS permission. You can allow it in Settings > Apps > FinTrack > Permissions.' : ex.message, 'danger');
+      } finally { b.disabled = false; }
+    } else if (b.dataset.key === 'phone-off') {
+      if (!await confirmAction({ title: 'Turn off automatic SMS?', text: 'New SMS stop coming to FinTrack. Messages already here stay.', confirm: 'Turn off' })) return;
+      await phoneSms.disable();
+      await api('/sms/key', { method: 'DELETE' });
+      toast('Automatic SMS is off.');
+    } else if (b.dataset.key === 'new') {
       const active = (await api('/sms/key')).active;
       if (active && !await confirmAction({ title: 'Make a new address?', text: 'The old address stops working. Put the new one in your phone\'s forwarding app.', confirm: 'Make a new one', danger: false })) return;
       freshPath = (await api('/sms/key', { method: 'POST' })).path;

@@ -132,3 +132,47 @@ jobs:
       - name: Server log
         if: always()
         run: docker logs fintrack || true
+
+  android:
+    # Builds the Android app (mobile/) and keeps the APK as a download on the run's page.
+    # On main it is also published as the "FinTrack for Android (latest)" release, to download on a phone.
+    name: android app (APK)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write                # only to publish that release
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'         # Capacitor 8 needs Java 21
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - name: Pages into the app, pointed at the FinTrack server
+        run: npm run sync
+      - name: Test the SMS filter, then build the APK
+        working-directory: mobile/android
+        run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FinTrack-android
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+      - name: Publish the APK as the latest Android release (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: mobile/android/app/build/outputs/apk/debug
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app-debug.apk FinTrack.apk
+          gh release delete android-latest --yes --cleanup-tag || true
+          gh release create android-latest FinTrack.apk --prerelease \
+            --title "FinTrack for Android (latest)" --target "$GITHUB_SHA" \
+            --notes "Built from ${GITHUB_SHA::7}. On your phone: download FinTrack.apk, open it, allow installing from this source, install. Then log in and go to SMS import > Turn on automatic SMS."

@@ -106,6 +106,7 @@ FinTrack/
 │   ├── demo/                  two-window pgAdmin demo: transfers at the same moment; sample committees and SMS
 │   └── tests/                 database tests (run in pgAdmin or with npm test)
 ├── Dockerfile, render.yaml how FinTrack runs online (see "Putting FinTrack online")
+├── mobile/                the Android app (Capacitor) with automatic SMS import
 ├── backend/               PHP REST API
 │   ├── .env.example           copy to .env and fill in
 │   ├── router.php             entry point for `php -S` (sends /api/… to the API, serves the website)
@@ -197,6 +198,10 @@ Good to know:
 - The website connects only as `fintrack_app`, which can't change the tables; the owner's connection string stays on your computer.
 - Settings for online use (`DATABASE_URL`, `CLIENT_IP_HEADER`, `CORS_ORIGINS`) are explained in `backend/.env.example`.
 - CI builds the Docker image and runs it against a database made by the installer on every pull request.
+
+## Android app
+
+`mobile/` turns FinTrack into an Android app with Capacitor. Inside it, **SMS import → Turn on automatic SMS** makes the phone send bank, JazzCash and Easypaisa SMS to the review inbox by itself: only from bank and wallet senders, only payments, never personal messages or codes, retrying until the server answers. Download it on your phone from **Releases → FinTrack for Android (latest) → FinTrack.apk** (rebuilt on every change to `main`). Details in [mobile/README.md](mobile/README.md).
 
 ## Running the tests
 

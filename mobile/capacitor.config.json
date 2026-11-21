@@ -1,0 +1,11 @@
+{
+  "appId": "pk.fintrack.app",
+  "appName": "FinTrack",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
