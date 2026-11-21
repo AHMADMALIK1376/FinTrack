@@ -67,3 +67,22 @@ function field(array $body, string $key): string|int|float|bool|null
     }
     return $value === '' ? null : $value;
 }
+
+/**
+ * The visitor's IP address, for the wrong-password limit (SEC-05).
+ * Behind a hosting proxy every request comes from the proxy, so set CLIENT_IP_HEADER to the header
+ * the proxy fills in (on Render: True-Client-IP). X-Forwarded-For is not used by default: on Render
+ * a visitor can put anything in it.
+ */
+function client_ip(): string
+{
+    $header = env('CLIENT_IP_HEADER');
+    if ($header) {
+        $value = $_SERVER['HTTP_' . strtoupper(str_replace('-', '_', $header))] ?? '';
+        $ip = trim(explode(',', $value)[0]);
+        if (filter_var($ip, FILTER_VALIDATE_IP)) {
+            return $ip;
+        }
+    }
+    return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+}

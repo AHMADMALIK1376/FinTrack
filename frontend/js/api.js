@@ -1,5 +1,10 @@
 // Shared helpers for every page: API calls, login state, formatting, toasts and confirm pop-ups.
-const API = '/api';
+// The server's address. Empty on the website (same address as the pages); the Android app sets
+// window.FT_CONFIG = { apiBase: 'https://your-fintrack.onrender.com' } in js/config.js when it is built.
+const API_BASE = ((typeof window !== 'undefined' && window.FT_CONFIG && window.FT_CONFIG.apiBase) || '').replace(/\/$/, '');
+const API = API_BASE + '/api';
+/** The public address of FinTrack, for links people open elsewhere (WhatsApp, the SMS forwarder). */
+const siteOrigin = () => API_BASE || location.origin;
 
 /** Login state. "Keep me logged in" stores the token in localStorage; otherwise only for this browser tab. */
 const auth = {

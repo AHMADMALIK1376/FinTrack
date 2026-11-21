@@ -105,9 +105,11 @@ FinTrack/
 │   ├── perf/                  100,000+ row performance test (generate.sql, explain.sql)
 │   ├── demo/                  two-window pgAdmin demo: transfers at the same moment; sample committees and SMS
 │   └── tests/                 database tests (run in pgAdmin or with npm test)
+├── Dockerfile, render.yaml how FinTrack runs online (see "Putting FinTrack online")
 ├── backend/               PHP REST API
 │   ├── .env.example           copy to .env and fill in
 │   ├── router.php             entry point for `php -S` (sends /api/… to the API, serves the website)
+│   ├── bin/                   install-db.php (database online in one command), post-recurring.php (daily job)
 │   ├── tests/                 API tests (npm test; they start the PHP server themselves)
 │   └── src/
 │       ├── app.php            route table, login check and error messages
@@ -178,6 +180,23 @@ schtasks /Create /SC DAILY /ST 06:00 /TN "FinTrack recurring" /TR "php D:\FinTra
 ```
 
 **If it says "Database password not set":** the PHP server or tests could not read `backend/.env`. On Windows, Notepad often saves it as `.env.txt`; rename it with `Rename-Item .env.txt .env`, and make sure it has a `PGPASSWORD=` line. If PostgreSQL is installed in a different folder or port, set `PGPORT` to match (check with `Get-Service *postgres*` and the `port =` line in `postgresql.conf`).
+
+## Putting FinTrack online
+
+FinTrack runs online as one small Docker container on **Render** (the PHP API and the pages) with the database on **Neon** (free PostgreSQL that doesn't expire). The repository already has what's needed: a `Dockerfile`, `render.yaml` and a one-command database installer.
+
+1. **Database (Neon).** Make a free project at [neon.com](https://neon.com) and copy its connection string (Dashboard → Connect). On your computer, from the `backend` folder:
+   ```bash
+   php bin/install-db.php "postgresql://neondb_owner:<password>@<host>/neondb?sslmode=require" --with-demo
+   ```
+   It runs every script in `database/` in order, gives the website's account (`fintrack_app`) a new random password, and prints the `DATABASE_URL` for the website. It refuses to install over an existing FinTrack database unless you add `--reset` (which deletes its data). Leave out `--with-demo` for no sample committees and SMS.
+2. **Website (Render).** On [render.com](https://render.com): New → Blueprint → this repository. Render reads `render.yaml`, builds the `Dockerfile`, makes a random `JWT_SECRET`, and asks for `DATABASE_URL`: paste the line the installer printed. FinTrack is then live at `https://fintrack-….onrender.com`.
+
+Good to know:
+- On the free plan Render puts the service to sleep after 15 minutes without visits; the next visit takes about a minute to wake it.
+- The website connects only as `fintrack_app`, which can't change the tables; the owner's connection string stays on your computer.
+- Settings for online use (`DATABASE_URL`, `CLIENT_IP_HEADER`, `CORS_ORIGINS`) are explained in `backend/.env.example`.
+- CI builds the Docker image and runs it against a database made by the installer on every pull request.
 
 ## Running the tests
 

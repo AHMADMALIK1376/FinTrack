@@ -1,0 +1,13 @@
+# only the app goes into the image: no secrets, tests, docs or local tools
+**/.env
+**/.env.*
+!backend/.env.example
+**/node_modules
+.git
+.github
+docs
+planning
+backend/tests
+database/tests
+database/perf
+mobile

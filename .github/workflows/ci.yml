@@ -72,3 +72,63 @@ jobs:
         run: npm test
       - name: Security audit of the test tools
         run: npm audit --audit-level=high
+
+  hosting:
+    # The way FinTrack runs online: the one-command installer sets up an empty database, then the
+    # Docker image (what Render runs) starts with only DATABASE_URL and JWT_SECRET, and is used.
+    name: hosting (Docker image + installer)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17            # what Neon runs by default
+        env:
+          POSTGRES_USER: owner
+          POSTGRES_PASSWORD: owner_pw
+          POSTGRES_DB: neondb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U owner"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql
+          coverage: none
+      - name: Install the database in one command (as the owner, like on Neon)
+        run: |
+          php backend/bin/install-db.php "postgresql://owner:owner_pw@localhost:5432/neondb?sslmode=disable" --with-demo | tee install.txt
+          grep -o 'postgresql://fintrack_app:[^ ]*' install.txt > app_url.txt
+      - name: A second install refuses to wipe the data
+        run: |
+          if php backend/bin/install-db.php "postgresql://owner:owner_pw@localhost:5432/neondb?sslmode=disable"; then
+            echo "should have refused"; exit 1
+          fi
+      - name: Build the Docker image
+        run: docker build -t fintrack .
+      - name: Start it with only DATABASE_URL and JWT_SECRET, as on Render
+        run: |
+          docker run -d --name fintrack --network host -e PORT=10000 \
+            -e DATABASE_URL="$(cat app_url.txt)" -e JWT_SECRET=ci-hosting-secret \
+            -e CLIENT_IP_HEADER=True-Client-IP fintrack
+          for i in $(seq 1 30); do curl -fs http://localhost:10000/api/health && break; sleep 1; done
+          curl -fs http://localhost:10000/api/health | grep -q '"database_role":"fintrack_app"'
+      - name: Use it - pages, log-in, data, the app's CORS
+        run: |
+          B=http://localhost:10000
+          curl -fs $B/index.html | grep -q FinTrack
+          TOKEN=$(curl -fs -X POST $B/api/auth/login -H 'Content-Type: application/json' \
+                  -d '{"email":"demo@fintrack.pk","password":"demo1234"}' | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')
+          curl -fs $B/api/imports -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json; c=json.load(sys.stdin)["counts"]; assert c["pending"] == 5, c'
+          curl -fs $B/api/committees -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json; assert len(json.load(sys.stdin)) == 3'
+          curl -s -i -X OPTIONS $B/api/accounts -H 'Origin: https://localhost' | grep -qi '^access-control-allow-origin: https://localhost'
+          ! curl -s -i -X OPTIONS $B/api/accounts -H 'Origin: https://evil.example' | grep -qi '^access-control-allow-origin'
+          ! curl -fs $B/.env
+          ! curl -fs $B/../backend/src/env.php
+      - name: Server log
+        if: always()
+        run: docker logs fintrack || true

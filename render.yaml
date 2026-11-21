@@ -1,0 +1,18 @@
+# Render Blueprint: Render reads this when you choose New > Blueprint and pick this repository.
+# The database is on Neon (Render's free databases are deleted after 30 days).
+services:
+  - type: web
+    name: fintrack
+    runtime: docker
+    plan: free
+    region: singapore          # the closest Render region to Pakistan
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL      # the fintrack_app line printed by backend/bin/install-db.php
+        sync: false            # Render asks for it; it is never stored in GitHub
+      - key: JWT_SECRET        # signs log-in tokens; Render makes a long random one
+        generateValue: true
+      - key: CLIENT_IP_HEADER  # Render puts the visitor's real address here (for the wrong-password limit)
+        value: True-Client-IP
+      - key: CORS_ORIGINS      # the Android app's own addresses
+        value: https://localhost,capacitor://localhost
