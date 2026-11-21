@@ -102,7 +102,7 @@
   function rowHtml(t, i) {
     return `<tr>
       <td><span class="who"><span class="ft-cat ${t.type}">${icon(catIcon(t.category), 20)}</span>
-        <span style="min-width:0"><b>${esc(t.description || t.category)}</b><small class="d-inline-flex align-items-center gap-1">${t.type === 'income' ? 'Income' : 'Expense'}${t.recurring_id ? ` · ${icon('repeat', 12)} Repeats` : ''}</small></span></span></td>
+        <span style="min-width:0"><b>${esc(t.description || t.category)}</b><small class="d-inline-flex align-items-center gap-1">${t.type === 'income' ? 'Income' : 'Expense'}${t.recurring_id ? ` · ${icon('repeat', 12)} Repeats` : ''}</small><small class="ft-phone-only">${dateLabel(t.txn_date)} · ${esc(t.account_name)}</small></span></span></td>
       <td style="color:#475569">${dateLabel(t.txn_date)}</td>
       <td><span class="d-inline-flex align-items-center gap-2" style="color:#334155">${icon(accIcon(accounts.find((a) => a.account_id === t.account_id)?.account_type), 16)}${esc(t.account_name)}</span></td>
       <td><span class="ft-tag ${t.type}">${esc(t.category)}</span></td>
@@ -375,7 +375,9 @@
     $('account').innerHTML = accounts.map((a) => `<option value="${a.account_id}">${esc(a.account_name)}</option>`).join('');
     openPanelQuiet();
     await Promise.all([load(), loadRules()]);
-    if (location.hash === '#add') { openPanel(); history.replaceState(null, '', location.pathname + location.search); }
+    const addFromHash = () => { if (location.hash === '#add') { openPanel(); history.replaceState(null, '', location.pathname + location.search); } };
+    addFromHash();
+    window.addEventListener('hashchange', addFromHash);   // the + button while already on this page
   }))();
 </script>
 </body>

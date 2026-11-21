@@ -14,6 +14,15 @@ if (!str_starts_with($path, '/api/')) {
         header('Location: /index.html');
         return true;
     }
+    // a page that doesn't exist gets FinTrack's friendly 404 page, not the server's plain one
+    $file = realpath(__DIR__ . '/../frontend' . $path);
+    $root = realpath(__DIR__ . '/../frontend');
+    if ($file === false || !str_starts_with($file, $root . DIRECTORY_SEPARATOR) || !is_file($file)) {
+        http_response_code(404);
+        header('Content-Type: text/html; charset=utf-8');
+        readfile($root . '/404.html');
+        return true;
+    }
     return false; // let the built-in server send the website file
 }
 

@@ -11,6 +11,16 @@ const NAV = [
   { href: 'reports.html', label: 'Reports', icon: 'chart' },
 ];
 
+// What the phone's fifth button can show (slot: true = it can take that button's place)
+const MORE_MENU = [
+  { href: 'budgets.html', label: 'Budgets & goals', short: 'Budgets', icon: 'pie', sub: 'limits and savings', count: 'warnings', slot: true },
+  { href: 'accounts.html', label: 'Accounts & categories', short: 'Accounts', icon: 'wallet', sub: 'balances, transfers', count: '', slot: true },
+  { href: 'imports.html', label: 'SMS import', short: 'SMS', icon: 'message', sub: 'bank and wallet SMS', count: 'imports', slot: true },
+  { href: 'reports.html', label: 'Reports', short: 'Reports', icon: 'chart', sub: 'the year at a glance', count: '', slot: true },
+  { href: 'transactions.html#repeating', label: 'Repeating', short: 'Repeating', icon: 'repeat', sub: 'salary, rent, bills', count: '', slot: false },
+  { href: 'accounts.html#activity', label: 'Activity log', short: 'Log', icon: 'history', sub: 'every change, kept safe', count: '', slot: false },
+];
+
 const shell = {
   page: '',
 
@@ -74,10 +84,8 @@ const shell = {
         </div>
       </div>`;
 
-    const tabs = [['dashboard.html', 'Home', 'grid'], ['transactions.html', 'Activity', 'swap'], null, ['committees.html', 'Committees', 'users'], ['budgets.html', 'Budgets', 'pie']];
-    document.getElementById('tabbar').innerHTML = tabs.map((t) => (t
-      ? `<a href="${t[0]}" class="${t[0] === page ? 'active' : ''}" ${t[0] === page ? 'aria-current="page"' : ''}>${icon(t[2], 22)}${t[1]}</a>`
-      : `<a href="transactions.html#add" class="add" aria-label="Add transaction">${icon('plus', 26)}</a>`)).join('');
+    document.body.classList.add('page-' + page.replace('.html', ''));
+    this.renderTabbar(page);
 
     // quick search: Enter opens Transactions filtered by the text; Ctrl+K jumps to the box
     document.getElementById('quickSearch').addEventListener('submit', (e) => {
@@ -89,6 +97,60 @@ const shell = {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); document.getElementById('quickSearchInput').focus(); }
     });
     this.refresh();
+  },
+
+  /**
+   * Phone bottom bar: Home · Activity · + · Committees · [slot]. The fifth button is switchable:
+   * it shows the page last chosen from its menu (Budgets, Accounts, SMS import, Reports), and the
+   * phone remembers the choice. Tapping it opens the menu again.
+   */
+  renderTabbar(page) {
+    let slot = MORE_MENU.find((m) => m.slot && m.href === page);
+    if (slot) {
+      try { localStorage.setItem('ft_more_slot', slot.href); } catch { /* private mode */ }
+    } else {
+      let saved = null;
+      try { saved = localStorage.getItem('ft_more_slot'); } catch { /* private mode */ }
+      slot = MORE_MENU.find((m) => m.slot && m.href === saved) || null;
+    }
+    const onSlot = slot && slot.href === page;
+    const tab = (href, label, ic) => `<a href="${href}" class="${href === page ? 'active' : ''}" ${href === page ? 'aria-current="page"' : ''}><span class="pill">${icon(ic, 22)}</span>${label}</a>`;
+    const caret = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>';
+    document.getElementById('tabbar').innerHTML = tab('dashboard.html', 'Home', 'grid') + tab('transactions.html', 'Activity', 'swap')
+      + `<a href="transactions.html#add" class="add" aria-label="Add transaction">${icon('plus', 26)}</a>`
+      + tab('committees.html', 'Committees', 'users')
+      + `<button type="button" class="slot ${onSlot ? 'active' : ''}" id="moreBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="moreMenu"
+           aria-label="${slot ? esc(slot.label) + ', or choose another page' : 'More pages'}">
+           <span class="pill">${icon(slot ? slot.icon : 'more', 22)}<span class="ft-badge d-none" id="moreBadge"></span></span>
+           <span class="d-inline-flex align-items-center gap-1">${slot ? esc(slot.short) : 'More'}${slot ? caret : ''}</span></button>`;
+
+    const user = auth.user || {};
+    const menu = document.createElement('div');
+    menu.className = 'ft-more';
+    menu.id = 'moreMenu';
+    menu.hidden = true;
+    menu.innerHTML = `<div class="ft-more-backdrop" data-close></div>
+      <div class="ft-more-box" role="menu" aria-label="More pages">
+        <p class="ft-more-head">Show in this button</p>
+        ${MORE_MENU.map((m) => `<a role="menuitem" href="${m.href}" class="ft-more-item ${slot && m.href === slot.href ? 'on' : ''}">
+          <span class="ic">${icon(m.icon, 18)}</span><span class="flex-grow-1"><span class="d-block lbl">${esc(m.label)}</span><span class="sub">${esc(m.sub)}</span></span>
+          ${m.count ? `<span class="ft-badge d-none" data-count="${m.count}"></span>` : ''}${slot && m.href === slot.href ? `<span class="tick">${icon('check', 18)}</span>` : ''}</a>`).join('')}
+        <hr>
+        <div class="ft-more-item user"><span class="ic av">${esc(initials(user.full_name))}</span>
+          <span class="flex-grow-1"><span class="d-block lbl">${esc(user.full_name || '')}</span><span class="sub">${esc(user.email || '')}</span></span>
+          <button type="button" class="logout" role="menuitem" onclick="auth.logout()">${icon('logout', 16)}Log out</button></div>
+      </div>`;
+    document.body.appendChild(menu);
+    const btn = document.getElementById('moreBtn');
+    const close = () => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+    btn.addEventListener('click', () => {
+      const opening = menu.hidden;
+      menu.hidden = !opening;
+      btn.setAttribute('aria-expanded', String(opening));
+      if (opening) menu.querySelector('.ft-more-item')?.focus();
+    });
+    menu.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !menu.hidden) { close(); btn.focus(); } });
   },
 
   /** Updates the menu counts, Shan's tip and the notifications for the current month. */
@@ -106,6 +168,13 @@ const shell = {
         el.textContent = n;
         el.classList.toggle('d-none', !n);
       });
+      // the fifth button keeps a badge while something in its menu needs you, whatever page it shows
+      const moreBadge = document.getElementById('moreBadge');
+      if (moreBadge) {
+        const need = (counts.imports || 0) + (counts.warnings || 0);
+        moreBadge.textContent = need > 9 ? '9+' : need;
+        moreBadge.classList.toggle('d-none', !need);
+      }
 
       const card = document.getElementById('shanCard');
       const link = document.getElementById('shanLink');
