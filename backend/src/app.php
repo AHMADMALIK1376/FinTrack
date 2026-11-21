@@ -67,6 +67,16 @@ function routes(): array
         ['POST', '/api/committees/{id}/rounds/{id}/paid', 'committees_mark_paid', true],
         ['POST', '/api/committees/{id}/rounds/{id}/confirm', 'committees_confirm', true],
         ['POST', '/api/committees/{id}/rounds/{id}/payout', 'committees_payout', true],
+        ['POST', '/api/sms/{key}', 'sms_receive', false],
+        ['GET', '/api/sms/key', 'sms_key_get', true],
+        ['POST', '/api/sms/key', 'sms_key_create', true],
+        ['DELETE', '/api/sms/key', 'sms_key_delete', true],
+        ['GET', '/api/imports', 'imports_list', true],
+        ['POST', '/api/imports/test', 'imports_test', true],
+        ['POST', '/api/imports/{id}/add', 'imports_add', true],
+        ['POST', '/api/imports/{id}/ignore', 'imports_ignore', true],
+        ['POST', '/api/imports/{id}/restore', 'imports_restore', true],
+        ['DELETE', '/api/imports/{id}', 'imports_delete', true],
     ];
 }
 
@@ -79,11 +89,12 @@ function handle_request(string $method, string $path): void
             throw new ApiError(500, $problem);
         }
         foreach (routes() as [$routeMethod, $pattern, $handler, $needsLogin]) {
-            $regex = '#^' . str_replace('\{id\}', '(\d+)', preg_quote($pattern, '#')) . '$#';
+            $regex = '#^' . str_replace(['\{id\}', '\{key\}'], ['(\d+)', '([A-Za-z0-9_-]{40,64})'], preg_quote($pattern, '#')) . '$#';
             if ($routeMethod !== $method || !preg_match($regex, $path, $match)) {
                 continue;
             }
-            $args = array_map('intval', array_slice($match, 1));
+            // {id} is a number; {key} (the SMS forwarding key) stays text
+            $args = array_map(fn ($v) => strlen($v) < 12 ? (int) $v : $v, array_slice($match, 1));
             if ($needsLogin) {
                 array_unshift($args, current_user());
             }
