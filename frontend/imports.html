@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>FinTrack · SMS import</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="assets/icon.svg">
+<link href="vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<a class="visually-hidden-focusable" href="#content">Skip to content</a>
+<div class="ft-app">
+  <aside class="ft-card ft-side" id="sidebar"></aside>
+  <main class="ft-main" id="content">
+    <header class="ft-top" id="topbar"></header>
+    <div class="ft-grid-4" id="stats"></div>
+    <div class="ft-row" style="align-items:flex-start">
+      <section class="ft-card d-flex flex-column gap-3" style="flex:2 1 600px" aria-labelledby="inboxTitle">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div><h2 class="ft-label" id="inboxTitle">Review inbox</h2>
+            <p class="ft-muted mt-1">Check what FinTrack read. Nothing is added to your accounts until you press Add.</p></div>
+          <div class="ft-seg" role="group" aria-label="Show" id="statusSeg">
+            <button type="button" data-status="pending" aria-pressed="true">Waiting</button>
+            <button type="button" data-status="added" aria-pressed="false">Added</button>
+            <button type="button" data-status="ignored" aria-pressed="false">Ignored</button>
+            <button type="button" data-status="duplicate" aria-pressed="false">Duplicates</button>
+          </div>
+        </div>
+        <div id="items" class="d-flex flex-column gap-3" aria-live="polite"><p class="ft-empty m-0">Loading…</p></div>
+      </section>
+      <section class="ft-card d-flex flex-column gap-3" style="flex:1 1 340px" aria-labelledby="setupTitle">
+        <div class="d-flex justify-content-between align-items-center gap-2"><h2 class="ft-label" id="setupTitle">Forward SMS from your phone</h2><span id="keyTag"></span></div>
+        <div id="setup" class="d-flex flex-column gap-3"></div>
+        <div class="ft-iconbox">${shield}<span><b>Private by design.</b> OTPs and codes are never saved. Messages without a payment are thrown away. Only you see your messages.</span></div>
+      </section>
+    </div>
+  </main>
+</div>
+<nav class="ft-tabbar" id="tabbar" aria-label="Main"></nav>
+
+<script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/api.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/committees.js"></script>
+<script>
+  shell.render('imports.html', {
+    title: 'SMS import', sub: 'JazzCash, Easypaisa and bank SMS, forwarded from your phone and checked by you',
+    actions: `<button class="ft-btn" type="button" id="tryBtn">${icon('message', 18)}Try a message</button>`,
+  });
+  document.querySelectorAll('.ft-iconbox').forEach((b) => { b.innerHTML = b.innerHTML.replace('${shield}', icon('shield', 17)); });
+  const $ = (id) => document.getElementById(id);
+  let status = 'pending';
+  let accounts = [];
+  let categories = [];
+  let data = { items: [], counts: {} };
+  let freshPath = null;   // the forwarding address, only right after it is made
+
+  const SAMPLES = [
+    ['JazzCash', 'JazzCash · received', 'You have received Rs 1,500.00 from ALI RAZA 03001234567 on {d}. TID: {t}. New balance: Rs 3,200.50'],
+    ['Easypaisa', 'Easypaisa · sent', 'You have successfully sent Rs.1,000 to Bilal Ahmed on {d}. Trx ID {t}. Fee Rs.0. Easypaisa'],
+    ['HBL', 'HBL · card', 'Your HBL Debit Card ending 1234 was used for PKR 2,450.00 at FOODPANDA on {d}. Avl Bal PKR 45,210.00'],
+    ['MEEZANBANK', 'Meezan · salary', 'Your A/C xx1234 has been credited with PKR 120,000.00 on {d} Ref No {t}. Salary. Avl Bal PKR 150,000.00'],
+    ['JazzCash', 'JazzCash · bill', 'Your bill payment of Rs 2,340 for K-Electric is successful on {d}. TID {t}.'],
+  ];
+  const PROVIDER_COLOURS = { JazzCash: '#D7262E', Easypaisa: '#22A95B', HBL: '#00826B', 'Meezan Bank': '#7A2A7F', UBL: '#0057A8', SadaPay: '#FF6B6B', NayaPay: '#F28C28' };
+  const SHORT = { JazzCash: 'JC', Easypaisa: 'EP', SadaPay: 'SP', NayaPay: 'NP', 'Meezan Bank': 'MZ', 'Bank Alfalah': 'BAF', 'Allied Bank': 'ABL', 'Bank AL Habib': 'BAH', Other: '?' };
+  const badge = (p) => `<span class="ft-cat" style="width:42px;height:42px;border-radius:14px;flex:none;background:${PROVIDER_COLOURS[p] || 'var(--ft-ink)'};color:#fff;font-weight:700;font-size:12px">${esc(SHORT[p] || (p.length <= 4 ? p : bcInitials(p)))}</span>`;
+  const when = (ts) => new Date(ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+  function card(m) {
+    const inMoney = m.direction === 'in';
+    const kind = inMoney ? 'income' : 'expense';
+    const top = `<div class="d-flex gap-3 align-items-center">${badge(m.provider)}
+      <div class="flex-grow-1" style="min-width:0"><p class="m-0 fw-semibold" style="font-size:15px">${esc(m.counterparty || (inMoney ? 'Money received' : 'Payment'))}</p>
+        <p class="ft-muted mt-1">${esc(m.provider)} · ${bcDate(m.txn_date)}${m.reference ? ` · ID ${esc(m.reference)}` : ''}${m.source === 'test' ? ' · test' : ''}</p></div>
+      <div class="text-end"><p class="ft-big m-0" style="font-size:22px;white-space:nowrap;color:${inMoney ? '#166534' : 'var(--ft-text)'}">${inMoney ? '+' : '−'}${money(m.amount)}</p>
+        <p class="ft-muted mt-1">${inMoney ? 'money in' : 'money out'}</p></div></div>`;
+    const sms = `<details><summary class="ft-muted" style="cursor:pointer;font-size:12px">The SMS · ${esc(m.sender || 'unknown sender')} · ${when(m.received_at)}</summary>
+      <p class="m-0 mt-2" style="font-size:13px;line-height:1.5;background:var(--ft-bg);border-radius:12px;padding:10px 12px;color:#334155">${esc(m.body)}</p></details>`;
+    if (m.status === 'added') {
+      return `<article style="border:1px solid var(--ft-line);border-radius:18px;padding:14px 16px">${top}
+        <div class="d-flex flex-wrap gap-2 align-items-center mt-2">${bcTag('Added', 'ok', 'check')}<span class="ft-muted">${m.transaction_id ? `to ${esc(m.account_name)} as ${esc(m.category)}` : 'the transaction was deleted later'}</span>
+          <a class="ms-auto" href="transactions.html" style="font-size:13px">See transactions</a></div><div class="mt-2">${sms}</div></article>`;
+    }
+    if (m.status !== 'pending') {
+      return `<article style="border:1px solid var(--ft-line);border-radius:18px;padding:14px 16px">${top}
+        <div class="d-flex flex-wrap gap-2 align-items-center mt-2">${m.status === 'duplicate' ? bcTag('Same transaction ID as an earlier message', 'wait', 'copy') : bcTag('Ignored', 'due')}
+          <button class="ft-btn light ms-auto" style="min-height:34px;font-size:13px" data-restore="${m.import_id}">Back to the inbox</button>
+          <button class="ft-iconbtn" style="width:36px;height:36px" aria-label="Delete this message" data-delete="${m.import_id}">${icon('trash', 16)}</button></div>
+        <div class="mt-2">${sms}</div></article>`;
+    }
+    const accs = accounts.map((a) => `<option value="${a.account_id}" ${a.account_id === m.suggested_account_id ? 'selected' : ''}>${esc(a.account_name)}</option>`).join('');
+    const cats = categories.filter((c) => c.type === kind && c.name !== 'Transfer')
+      .map((c) => `<option value="${c.category_id}" ${c.category_id === m.suggested_category_id ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+    const id = m.import_id;
+    return `<article style="border:1px solid var(--ft-line);border-radius:18px;padding:16px" class="d-flex flex-column gap-3" data-item="${id}">${top}
+      ${m.maybe_same ? `<div class="ft-iconbox" style="background:var(--ft-amber-bg);color:#92400E">${icon('alert', 17)}<span>You may have added this already: <b>${esc(m.maybe_same.description || 'a transaction')}</b>, ${bcDate(m.maybe_same.txn_date, false)} in ${esc(m.maybe_same.account_name)}. If so, ignore this one.</span></div>` : ''}
+      <div class="d-grid gap-2" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+        <label class="ft-field m-0"><span style="font-size:12px;font-weight:500;color:#5B6476">Account</span><select class="ft-input" style="height:42px" data-f="account"><option value="">Choose…</option>${accs}</select></label>
+        <label class="ft-field m-0"><span style="font-size:12px;font-weight:500;color:#5B6476">Category</span><select class="ft-input" style="height:42px" data-f="category"><option value="">Choose…</option>${cats}</select></label>
+        <label class="ft-field m-0" style="grid-column:span 1"><span style="font-size:12px;font-weight:500;color:#5B6476">Note</span><input class="ft-input" style="height:42px" data-f="note" maxlength="200" value="${esc(m.provider + (m.counterparty ? ' · ' + m.counterparty : ''))}"></label>
+      </div>
+      <div class="d-flex flex-wrap gap-2 align-items-center">${sms ? `<div class="flex-grow-1" style="min-width:200px">${sms}</div>` : ''}
+        <button class="ft-btn light" data-ignore="${id}">Ignore</button>
+        <button class="ft-btn" data-add="${id}">${icon('check', 18)}Add ${inMoney ? '+' : '−'}${money(m.amount)}</button></div>
+    </article>`;
+  }
+
+  async function load() {
+    [data, accounts, categories] = await Promise.all([api('/imports?status=' + status), api('/accounts'), api('/categories')]);
+    const c = data.counts;
+    const key = await api('/sms/key');
+    $('stats').innerHTML = [
+      ['Waiting for you', c.pending, 'message', c.pending ? 'check and add them below' : 'all caught up'],
+      ['Added this month', c.added_this_month, 'check', `${c.added} added in all`],
+      ['Duplicates caught', c.duplicates, 'copy', 'same transaction ID twice'],
+      ['Forwarding', key.active ? 'On' : 'Off', 'phone', key.active ? (key.last_used_at ? `last SMS ${when(key.last_used_at)}` : 'waiting for the first SMS') : 'set it up on the right'],
+    ].map(([t, v, i, n]) => `<div class="ft-card ft-stat"><div class="d-flex justify-content-between align-items-center"><p class="t">${t}</p><span class="ft-save soft" style="color:#334155">${icon(i, 18)}</span></div>
+      <p class="ft-big" style="font-size:28px">${v}</p><p class="ft-muted">${esc(n)}</p></div>`).join('');
+
+    $('items').innerHTML = data.items.map(card).join('') || `<div class="ft-empty d-flex flex-column align-items-center gap-2 py-4 text-center">
+      <img src="assets/shan.svg" alt="" width="56" height="66">
+      <p class="m-0">${{ pending: 'No messages waiting. New SMS from your phone show up here.', added: 'Nothing added yet.', ignored: 'No ignored messages.', duplicate: 'No duplicates caught.' }[status]}</p>
+      ${status === 'pending' ? `<button class="ft-chip-btn" data-try="1">${icon('message', 18)}Try a sample message</button>` : ''}</div>`;
+    renderSetup(key);
+  }
+
+  function renderSetup(key) {
+    const url = freshPath ? location.origin + freshPath : null;
+    const local = /^(localhost|127\.|\[::1\])/.test(location.hostname);
+    $('keyTag').innerHTML = key.active ? bcTag('On', 'ok', 'check') : bcTag('Off', 'due');
+    const step = (n, html) => `<div class="d-flex gap-3"><span class="ft-cat" style="width:28px;height:28px;border-radius:50%;flex:none;font-weight:600;font-size:13px">${n}</span><div style="font-size:13px;line-height:1.55;color:#334155;min-width:0">${html}</div></div>`;
+    $('setup').innerHTML = [
+      step(1, '<b>Install an SMS forwarding app</b> on your Android phone: one that can send each SMS to a web address (search the Play Store for "SMS forwarder webhook").'),
+      step(2, key.active && !url
+        ? `<b>Your private address is on.</b> For safety it's only shown once. If you didn't save it, make a new one (the old one stops working).
+           <div class="d-flex gap-2 mt-2 flex-wrap"><button class="ft-btn light" style="min-height:36px;font-size:13px" data-key="new">Make a new address</button>
+           <button class="ft-btn light" style="min-height:36px;font-size:13px" data-key="off">Turn off</button></div>`
+        : url ? `<b>Your private address.</b> Copy it now: it's only shown once. Keep it private, like a password.
+           <div class="ft-code mt-2 w-100" style="letter-spacing:0;font-family:monospace;font-size:12px;font-weight:500;word-break:break-all;padding:8px 10px">${esc(url)}</div>
+           <button class="ft-btn mt-2" style="min-height:36px;font-size:13px" data-key="copy">${icon('copy', 16)}Copy address</button>`
+          : `<b>Make your private address.</b> Your phone sends SMS there.<div class="mt-2"><button class="ft-btn" style="min-height:38px;font-size:13px" data-key="new">${icon('link', 16)}Make my address</button></div>`),
+      step(3, '<b>In the app,</b> add the address with method <b>POST</b> and send the sender and the text (most apps do this by default, e.g. <code>{"from": "…", "text": "…"}</code>). Add a filter so only JazzCash, Easypaisa and bank SMS are sent.'),
+      step(4, '<b>Make a small payment</b> and it shows up in the inbox, ready to check and add.'),
+    ].join('') + (local ? `<p class="ft-muted m-0" style="font-size:12px;line-height:1.5">${icon('alert', 14)} FinTrack is running on this computer, so a phone can only reach it on the same Wi-Fi, using the computer's IP address instead of localhost. Once FinTrack is online, use its web address.</p>` : '');
+  }
+
+  function tryDialog() {
+    const today = bcDate(new Date().toISOString().slice(0, 10)).replace(/ /g, '-');
+    const d = bcModal('Try a message', `
+      <p class="ft-muted m-0" style="font-size:13px;line-height:1.5">See how FinTrack reads an SMS without a phone. Pick a sample or paste one of your own (change the numbers and names if you like).</p>
+      <div class="d-flex flex-wrap gap-2">${SAMPLES.map((s, i) => `<button type="button" class="ft-pill" style="border:0;cursor:pointer" data-sample="${i}">${esc(s[1])}</button>`).join('')}</div>
+      <div class="ft-field"><label for="trySender">From</label><input class="ft-input" id="trySender" placeholder="e.g. JazzCash, 8558, HBL" maxlength="40"></div>
+      <div class="ft-field"><label for="tryText">Message</label><textarea class="ft-input" id="tryText" rows="4" style="height:auto;padding:10px 12px" maxlength="1000"></textarea></div>
+      <p class="small m-0 d-none" id="tryOut" role="status"></p>`,
+    `<button type="button" class="ft-btn light" data-bs-dismiss="modal">Close</button><button class="ft-btn" id="tryGo">${icon('message', 18)}Read it</button>`, 480);
+    d.el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-sample]');
+      if (!b) return;
+      const [sender, , text] = SAMPLES[b.dataset.sample];
+      d.el.querySelector('#trySender').value = sender;
+      d.el.querySelector('#tryText').value = text.replace('{d}', today).replace('{t}', String(Date.now()).slice(-11));
+    });
+    d.el.querySelector('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const out = d.el.querySelector('#tryOut');
+      try {
+        const r = await api('/imports/test', { method: 'POST', body: { sender: d.el.querySelector('#trySender').value, text: d.el.querySelector('#tryText').value } });
+        out.className = `small m-0 ${r.saved ? 'text-success' : 'text-danger'}`;
+        out.textContent = r.saved ? (r.status === 'duplicate' ? 'Read it: it has the same transaction ID as an earlier message, so it went to Duplicates.' : 'Read it. It\'s waiting in your inbox.') : `Not saved: ${r.reason}`;
+        if (r.saved) { status = r.status === 'duplicate' ? 'duplicate' : 'pending'; setSeg(); load(); shell.refresh(); }
+      } catch (ex) {
+        out.className = 'small m-0 text-danger';
+        out.textContent = ex.message;
+      }
+    });
+  }
+
+  function setSeg() {
+    document.querySelectorAll('#statusSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.status === status)));
+  }
+
+  $('tryBtn').addEventListener('click', tryDialog);
+  $('statusSeg').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    status = b.dataset.status;
+    setSeg();
+    load().catch((ex) => toast(ex.message, 'danger'));
+  });
+  document.addEventListener('click', attempt(async (e) => {
+    const b = e.target.closest('button');
+    if (!b || b.closest('.modal')) return;
+    if (b.dataset.try) return tryDialog();
+    if (b.dataset.key === 'copy') return bcCopy(location.origin + freshPath, 'Address');
+    if (b.dataset.key === 'new') {
+      const active = (await api('/sms/key')).active;
+      if (active && !await confirmAction({ title: 'Make a new address?', text: 'The old address stops working. Put the new one in your phone\'s forwarding app.', confirm: 'Make a new one', danger: false })) return;
+      freshPath = (await api('/sms/key', { method: 'POST' })).path;
+    } else if (b.dataset.key === 'off') {
+      if (!await confirmAction({ title: 'Turn off forwarding?', text: 'SMS sent to your address will be refused. Messages already here stay.', confirm: 'Turn off' })) return;
+      await api('/sms/key', { method: 'DELETE' });
+      freshPath = null;
+    } else if (b.dataset.add) {
+      const box = document.querySelector(`[data-item="${b.dataset.add}"]`);
+      const f = (n) => box.querySelector(`[data-f="${n}"]`);
+      if (!f('account').value || !f('category').value) {
+        toast('Choose an account and a category.', 'danger');
+        (f('account').value ? f('category') : f('account')).focus();
+        return;
+      }
+      b.disabled = true;
+      try {
+        await api(`/imports/${b.dataset.add}/add`, { method: 'POST', body: { account_id: Number(f('account').value), category_id: Number(f('category').value), description: f('note').value } });
+      } finally { b.disabled = false; }
+      toast('Added to your transactions.');
+    } else if (b.dataset.ignore) {
+      await api(`/imports/${b.dataset.ignore}/ignore`, { method: 'POST' });
+      toast('Ignored. You can find it under Ignored.');
+    } else if (b.dataset.restore) {
+      await api(`/imports/${b.dataset.restore}/restore`, { method: 'POST' });
+      toast('Back in the inbox.');
+    } else if (b.dataset.delete) {
+      if (!await confirmAction({ title: 'Delete this message?', text: 'The SMS text is removed from FinTrack.', confirm: 'Delete' })) return;
+      await api(`/imports/${b.dataset.delete}`, { method: 'DELETE' });
+    } else return;
+    await load();
+    shell.refresh();
+  }));
+
+  load().catch((e) => toast(e.message, 'danger'));
+</script>
+</body>
+</html>
