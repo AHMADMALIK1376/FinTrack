@@ -132,3 +132,33 @@ jobs:
       - name: Server log
         if: always()
         run: docker logs fintrack || true
+
+  android:
+    # Builds the Android app (mobile/) and keeps the APK as a download on the run's page.
+    name: android app (APK)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'         # Capacitor 8 needs Java 21
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - name: Pages into the app, pointed at the FinTrack server
+        run: npm run sync
+      - name: Test the SMS filter, then build the APK
+        working-directory: mobile/android
+        run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FinTrack-android
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
