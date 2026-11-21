@@ -129,8 +129,8 @@
   }
 
   function renderSetup(key) {
-    const url = freshPath ? location.origin + freshPath : null;
-    const local = /^(localhost|127\.|\[::1\])/.test(location.hostname);
+    const url = freshPath ? siteOrigin() + freshPath : null;
+    const local = !API_BASE && /^(localhost|127\.|\[::1\])/.test(location.hostname);
     $('keyTag').innerHTML = key.active ? bcTag('On', 'ok', 'check') : bcTag('Off', 'due');
     const step = (n, html) => `<div class="d-flex gap-3"><span class="ft-cat" style="width:28px;height:28px;border-radius:50%;flex:none;font-weight:600;font-size:13px">${n}</span><div style="font-size:13px;line-height:1.55;color:#334155;min-width:0">${html}</div></div>`;
     $('setup').innerHTML = [
@@ -195,7 +195,7 @@
     const b = e.target.closest('button');
     if (!b || b.closest('.modal')) return;
     if (b.dataset.try) return tryDialog();
-    if (b.dataset.key === 'copy') return bcCopy(location.origin + freshPath, 'Address');
+    if (b.dataset.key === 'copy') return bcCopy(siteOrigin() + freshPath, 'Address');
     if (b.dataset.key === 'new') {
       const active = (await api('/sms/key')).active;
       if (active && !await confirmAction({ title: 'Make a new address?', text: 'The old address stops working. Put the new one in your phone\'s forwarding app.', confirm: 'Make a new one', danger: false })) return;

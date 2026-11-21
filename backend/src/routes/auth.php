@@ -42,7 +42,7 @@ function auth_login(): void
 {
     $body = request_body();
     $email = strtolower(trim((string) field($body, 'email')));
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+    $ip = client_ip();
 
     // SEC-05: after 5 wrong passwords in 10 minutes, this computer must wait (database/08_login_attempts.sql)
     $wait = (int) (query_one('SELECT login_wait_seconds(CAST(? AS inet)) AS seconds', [$ip])['seconds'] ?? 0);

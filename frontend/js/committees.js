@@ -42,7 +42,8 @@ const bcIcon = (name) => (/family|ghar|home|ammi|khala|phupp/i.test(name) ? 'hom
 
 /** The share text for WhatsApp, with a link that opens the join pop-up (after log-in if needed). */
 function bcInviteLink(code) {
-  return `${location.origin}${location.pathname.replace(/[^/]*$/, '')}committees.html?join=${encodeURIComponent(code)}`;
+  const base = API_BASE ? `${API_BASE}/` : `${location.origin}${location.pathname.replace(/[^/]*$/, '')}`;
+  return `${base}committees.html?join=${encodeURIComponent(code)}`;
 }
 function bcWhatsApp(text) {
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');

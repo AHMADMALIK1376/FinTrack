@@ -13,6 +13,9 @@ function db(): PDO
         $host = env('PGHOST', 'localhost');
         // a path means a Unix socket folder (Linux/Mac); PDO wants it as host too
         $dsn = sprintf('pgsql:host=%s;port=%s;dbname=%s', $host, env('PGPORT', '5432'), env('PGDATABASE', 'fintrack'));
+        if (env('PGSSLMODE')) {
+            $dsn .= ';sslmode=' . env('PGSSLMODE');   // hosted databases (Neon) require an encrypted connection
+        }
         $pdo = new PDO($dsn, env('PGUSER'), env('PGPASSWORD'), [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
