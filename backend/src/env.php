@@ -55,4 +55,36 @@ function database_settings_problem(): ?string
     return "Database password not set. $hint";
 }
 
+/**
+ * Hosting (Neon, Render ...) gives the database as one line:
+ *   DATABASE_URL=postgresql://user:password@host:5432/dbname?sslmode=require
+ * This fills in PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD and PGSSLMODE from it,
+ * unless they are already set one by one.
+ */
+function apply_database_url(?string $url): void
+{
+    if ($url === null || $url === '') {
+        return;
+    }
+    $parts = parse_url($url);
+    if ($parts === false || !in_array($parts['scheme'] ?? '', ['postgres', 'postgresql'], true)) {
+        return;
+    }
+    parse_str($parts['query'] ?? '', $query);
+    $values = [
+        'PGHOST' => isset($parts['host']) ? urldecode($parts['host']) : null,
+        'PGPORT' => isset($parts['port']) ? (string) $parts['port'] : null,
+        'PGDATABASE' => isset($parts['path']) ? urldecode(ltrim($parts['path'], '/')) : null,
+        'PGUSER' => isset($parts['user']) ? urldecode($parts['user']) : null,
+        'PGPASSWORD' => isset($parts['pass']) ? urldecode($parts['pass']) : null,
+        'PGSSLMODE' => isset($query['sslmode']) && is_string($query['sslmode']) ? $query['sslmode'] : null,
+    ];
+    foreach ($values as $key => $value) {
+        if ($value !== null && $value !== '' && getenv($key) === false) {
+            putenv("$key=$value");
+        }
+    }
+}
+
 load_env(dirname(__DIR__) . '/.env');
+apply_database_url(env('DATABASE_URL'));
