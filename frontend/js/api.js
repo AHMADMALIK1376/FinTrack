@@ -30,14 +30,82 @@ const auth = {
   },
 };
 
-/** Calls the PHP API. Throws an Error with the server's plain-English message when something is refused. */
-async function api(path, { method = 'GET', body } = {}) {
-  const res = await fetch(API + path, {
-    method,
-    headers: { 'Content-Type': 'application/json', ...(auth.token ? { Authorization: `Bearer ${auth.token}` } : {}) },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (res.status === 401 && auth.token) { auth.logout(); return new Promise(() => {}); }
+// ---------- connection states: offline, waking up, timeouts, logged out ----------
+const netState = {
+  pending: 0,
+  slowTimer: null,
+  /** A bar at the top of the screen: kind 'offline' (dark), 'slow' (blue, with a spinner) or null to hide it. */
+  show(kind, text) {
+    let bar = document.getElementById('ftStatus');
+    if (!kind) { if (bar) bar.hidden = true; return; }
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'ftStatus';
+      bar.setAttribute('role', 'status');
+      bar.setAttribute('aria-live', 'polite');
+      document.body.appendChild(bar);
+    }
+    bar.className = 'ft-status ' + kind;
+    bar.innerHTML = (kind === 'slow' ? '<span class="ft-spin" aria-hidden="true"></span>' : icon(kind === 'offline' ? 'alert' : 'check', 16)) + `<span>${text}</span>`;
+    bar.hidden = false;
+  },
+  start() {
+    this.pending += 1;
+    clearTimeout(this.slowTimer);
+    // a request still going after 4 s: the server is probably waking up (Render's free plan sleeps)
+    this.slowTimer = setTimeout(() => { if (this.pending && navigator.onLine !== false) this.show('slow', '<b>Waking FinTrack up…</b> The first visit after a quiet while can take up to a minute.'); }, 4000);
+  },
+  end() {
+    this.pending = Math.max(0, this.pending - 1);
+    if (!this.pending) {
+      clearTimeout(this.slowTimer);
+      if (document.getElementById('ftStatus')?.classList.contains('slow')) this.show(null);
+    }
+  },
+};
+window.addEventListener('offline', () => netState.show('offline', '<b>You’re offline.</b> You can look around; adding and changing need internet.'));
+window.addEventListener('online', () => { netState.show(null); toast('You’re back online.'); });
+document.addEventListener('DOMContentLoaded', () => { if (navigator.onLine === false) window.dispatchEvent(new Event('offline')); });
+
+let sessionEnded = false;
+/** Log-in expired (after 7 days) or was replaced: explain, then go to log-in and come back here afterwards. */
+function sessionExpired() {
+  if (sessionEnded) return;
+  sessionEnded = true;
+  const here = location.pathname.split('/').pop() + location.search;
+  auth.clear();
+  const go = () => location.replace('index.html' + (here && !here.startsWith('index.html') ? '?next=' + encodeURIComponent(here) : ''));
+  if (typeof bootstrap === 'undefined') return go();
+  confirmAction({ title: 'You’ve been logged out', text: 'For your safety FinTrack logs you out after 7 days. Log in again to carry on; nothing you saved is lost.', confirm: 'Log in again', danger: false, cancel: false }).then(go);
+}
+
+/** Calls the PHP API. Throws an Error with a plain-English message when something is refused or can't be reached. */
+async function api(path, { method = 'GET', body, timeout = 75000 } = {}) {
+  if (navigator.onLine === false) {
+    throw new Error('You’re offline. Connect to the internet and try again.');
+  }
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), timeout) : null;
+  netState.start();
+  let res;
+  try {
+    res = await fetch(API + path, {
+      method,
+      headers: { 'Content-Type': 'application/json', ...(auth.token ? { Authorization: `Bearer ${auth.token}` } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: ctrl ? ctrl.signal : undefined,
+    });
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      throw new Error(method === 'GET' ? 'FinTrack took too long to answer. Please try again.'
+        : 'FinTrack took too long to answer, so we can’t be sure it was saved. Check before you try again.');
+    }
+    throw new Error('Couldn’t reach FinTrack. Check your internet and try again.');
+  } finally {
+    clearTimeout(timer);
+    netState.end();
+  }
+  if (res.status === 401 && (auth.token || sessionEnded)) { sessionExpired(); return new Promise(() => {}); }   // one dialog, no extra error messages
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
@@ -111,15 +179,15 @@ function toast(message, type = 'success') {
 }
 
 /** A friendly confirm pop-up. Resolves true when the user confirms. */
-function confirmAction({ title, text, confirm = 'Delete', danger = true }) {
+function confirmAction({ title, text, confirm = 'Delete', danger = true, cancel = true }) {
   return new Promise((resolve) => {
     const el = document.createElement('div');
-    el.className = 'modal fade';
+    el.className = 'modal fade ft-confirm';   // stays a small box in the middle on phones (not a sheet)
     el.tabIndex = -1;
     el.innerHTML = `<div class="modal-dialog modal-dialog-centered"><div class="modal-content p-2">
       <div class="modal-header"><h2 class="modal-title">${esc(title)}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
       <div class="modal-body pt-0"><p class="mb-0" style="color:#475569">${esc(text)}</p></div>
-      <div class="modal-footer"><button type="button" class="ft-btn light" data-bs-dismiss="modal">Cancel</button>
+      <div class="modal-footer">${cancel ? '<button type="button" class="ft-btn light" data-bs-dismiss="modal">Cancel</button>' : ''}
       <button type="button" class="ft-btn ${danger ? 'danger' : ''}" data-ok>${esc(confirm)}</button></div></div></div>`;
     document.body.appendChild(el);
     const modal = new bootstrap.Modal(el);
