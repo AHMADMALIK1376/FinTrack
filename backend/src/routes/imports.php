@@ -14,11 +14,23 @@ require_once __DIR__ . '/../sms_parser.php';
 
 const SMS_RATE_LIMIT = 100;   // saved messages per user in 10 minutes
 
+/**
+ * The first $max characters of a UTF-8 text (Urdu names stay whole). Uses only PCRE, which is
+ * always part of PHP, so it works without the optional mbstring extension (off by default on Windows).
+ */
+function text_cut(string $text, int $max): string
+{
+    if (preg_match('/^.{0,' . $max . '}/su', $text, $m)) {
+        return $m[0];
+    }
+    return substr($text, 0, $max);   // not valid UTF-8: cut by bytes
+}
+
 /** Saves one message for a user. Returns ['saved' => bool, 'reason' => ?, 'import_id' => ?, 'status' => ?]. */
 function import_save_message(int $userId, string $source, string $sender, string $text, string $receivedAt): array
 {
-    $sender = mb_substr(trim($sender), 0, 40);
-    $text = mb_substr(trim($text), 0, 1000);
+    $sender = text_cut(trim($sender), 40);
+    $text = text_cut(trim($text), 1000);
     $parsed = sms_parse($sender, $text, substr($receivedAt, 0, 10));
     if (is_string($parsed)) {
         return ['saved' => false, 'reason' => $parsed];
@@ -66,7 +78,7 @@ function sms_incoming(): array
     $time = $pick(['receivedStamp', 'received_at', 'timestamp', 'time', 'date', 'sentStamp']);
     $at = null;
     if ($time !== '') {
-        $at = ctype_digit($time) ? (int) (strlen($time) > 10 ? intdiv((int) $time, 1000) : $time) : strtotime($time);
+        $at = preg_match('/^\d+$/', $time) ? (int) (strlen($time) > 10 ? intdiv((int) $time, 1000) : $time) : strtotime($time);
     }
     if (!$at || $at > time() + 86400 || $at < time() - 400 * 86400) {
         $at = time();
