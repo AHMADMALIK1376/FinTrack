@@ -201,7 +201,7 @@ Good to know:
 
 ## Android app
 
-`mobile/` turns FinTrack into an Android app with Capacitor. Inside it, **SMS import → Turn on automatic SMS** makes the phone send bank, JazzCash and Easypaisa SMS to the review inbox by itself: only from bank and wallet senders, only payments, never personal messages or codes, retrying until the server answers. CI builds the APK on every pull request (Actions → CI run → Artifacts → **FinTrack-android**). Details in [mobile/README.md](mobile/README.md).
+`mobile/` turns FinTrack into an Android app with Capacitor. Inside it, **SMS import → Turn on automatic SMS** makes the phone send bank, JazzCash and Easypaisa SMS to the review inbox by itself: only from bank and wallet senders, only payments, never personal messages or codes, retrying until the server answers. Download it on your phone from **Releases → FinTrack for Android (latest) → FinTrack.apk** (rebuilt on every change to `main`). Details in [mobile/README.md](mobile/README.md).
 
 ## Running the tests
 

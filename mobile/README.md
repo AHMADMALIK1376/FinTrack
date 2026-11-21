@@ -4,7 +4,7 @@ The FinTrack pages (`../frontend`) as an Android app made with [Capacitor](https
 
 ## Get the app (no Android Studio needed)
 
-Every pull request builds the app on GitHub. Open the repository's **Actions** tab → the latest **CI** run → **Artifacts** → **FinTrack-android**. Unzip it, copy `app-debug.apk` to your phone and open it. Android asks to allow installing from that source once.
+On your phone, open the repository's **Releases** → **FinTrack for Android (latest)** → **FinTrack.apk**, then open the download and install it (Android asks once to allow installing from your browser). It is rebuilt every time `main` changes. Every pull request's build is also on its CI run page under **Artifacts → FinTrack-android**.
 
 ## How automatic SMS works
 
