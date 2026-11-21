@@ -4,6 +4,7 @@
 const NAV = [
   { href: 'dashboard.html', label: 'Dashboard', icon: 'grid' },
   { href: 'transactions.html', label: 'Transactions', icon: 'swap' },
+  { href: 'imports.html', label: 'SMS import', icon: 'message', count: 'imports' },
   { href: 'accounts.html', label: 'Accounts', icon: 'wallet', count: 'accounts' },
   { href: 'budgets.html', label: 'Budgets & goals', icon: 'pie', count: 'warnings' },
   { href: 'committees.html', label: 'Committees', icon: 'users', count: 'committees' },
@@ -92,11 +93,13 @@ const shell = {
   /** Updates the menu counts, Shan's tip and the notifications for the current month. */
   async refresh() {
     try {
-      const [accounts, report, committees] = await Promise.all([api('/accounts'), api('/reports/dashboard?month=' + thisMonth()),
-        api('/committees').catch(() => [])]);
+      const [accounts, report, committees, imports] = await Promise.all([api('/accounts'), api('/reports/dashboard?month=' + thisMonth()),
+        api('/committees').catch(() => []), api('/imports?status=pending').catch(() => ({ counts: { pending: 0 } }))]);
       const warnings = report.budget_warnings;
       const bc = committeeNotices(committees);
-      const counts = { accounts: accounts.length, warnings: warnings.length, committees: bc.length };
+      const waiting = imports.counts.pending;
+      if (waiting) bc.unshift({ href: 'imports.html', icon: 'message', head: `${waiting} SMS to review`, text: 'Check them and add them to your accounts' });
+      const counts = { accounts: accounts.length, warnings: warnings.length, committees: bc.length - (waiting ? 1 : 0), imports: waiting };
       document.querySelectorAll('[data-count]').forEach((el) => {
         const n = counts[el.dataset.count];
         el.textContent = n;
@@ -130,7 +133,7 @@ const shell = {
       document.getElementById('bellMenu').innerHTML = total
         ? (warnings.length ? `<p class="ft-sec mt-1 mb-2">This month</p>` + warnings.map((w) => item('budgets.html', 'alert', 'var(--ft-amber-bg)', 'var(--ft-amber)',
             `${esc(w.category)} is over budget`, `by ${money(w.over_by)} (${money(w.spent)} of ${money(w.limit_amount)})`)).join('') : '')
-          + (bc.length ? `<p class="ft-sec mt-2 mb-2">Committees</p>` + bc.map((n) => item(n.href, n.icon, '#EAF1FC', 'var(--ft-brand)', n.head, n.text)).join('') : '')
+          + (bc.length ? `<p class="ft-sec mt-2 mb-2">To do</p>` + bc.map((n) => item(n.href, n.icon, '#EAF1FC', 'var(--ft-brand)', n.head, n.text)).join('') : '')
         : '<p class="ft-empty m-0">You\'re all caught up. No budget is over its limit.</p>';
     } catch (e) {
       document.getElementById('shanHead').textContent = 'Shan is resting';
