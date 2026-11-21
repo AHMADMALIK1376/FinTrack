@@ -30,7 +30,7 @@
         </div>
         <div id="items" class="d-flex flex-column gap-3" aria-live="polite"><p class="ft-empty m-0">Loading…</p></div>
       </section>
-      <section class="ft-card d-flex flex-column gap-3" style="flex:1 1 340px" aria-labelledby="setupTitle">
+      <section class="ft-card d-flex flex-column gap-3" style="flex:1 1 340px" aria-labelledby="setupTitle" id="setupCard">
         <div class="d-flex justify-content-between align-items-center gap-2"><h2 class="ft-label" id="setupTitle">Forward SMS from your phone</h2><span id="keyTag"></span></div>
         <div id="setup" class="d-flex flex-column gap-3"></div>
         <div class="ft-iconbox">${shield}<span><b>Private by design.</b> OTPs and codes are never saved. Messages without a payment are thrown away. Only you see your messages.</span></div>
@@ -135,6 +135,10 @@
   async function renderPhoneSetup(key) {
     const st = await phoneSms.status();
     const on = st.enabled && st.permission && key.active;
+    // until it's on, the switch is the first thing on the page (on a phone the numbers would push it down)
+    const card = $('setupCard');
+    if (!on && card.nextElementSibling !== $('stats')) $('stats').before(card);
+    if (on && card.parentElement !== $('items').closest('.ft-row')) $('items').closest('.ft-row').append(card);
     $('keyTag').innerHTML = on ? bcTag('On', 'ok', 'check') : bcTag('Off', 'due');
     $('setup').innerHTML = on
       ? `<div class="ft-iconbox">${icon('phone', 17)}<span><b>Automatic SMS is on.</b> New JazzCash, Easypaisa and bank SMS on this phone come to your inbox by themselves${st.lastSentAt ? `; the last one came ${when(st.lastSentAt)}` : ''}. Personal messages and codes never leave the phone.</span></div>
