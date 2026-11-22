@@ -45,7 +45,7 @@ const netState = {
       bar.setAttribute('aria-live', 'polite');
       document.body.appendChild(bar);
     }
-    bar.className = 'ft-status ' + kind;
+    bar.className = 'ft-netbar ' + kind;
     bar.innerHTML = (kind === 'slow' ? '<span class="ft-spin" aria-hidden="true"></span>' : icon(kind === 'offline' ? 'alert' : 'check', 16)) + `<span>${text}</span>`;
     bar.hidden = false;
   },
